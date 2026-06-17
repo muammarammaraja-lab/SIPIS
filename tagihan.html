@@ -15,8 +15,11 @@
       <nav>
         <a href="dashboard.html">Dashboard</a>
         <a href="siswa.html">Data Siswa</a>
+        <a href="jenis-tagihan.html">Jenis Tagihan</a>
         <a href="tagihan.html" class="active">Tagihan</a>
         <a href="pembayaran.html">Pembayaran</a>
+        <a href="template.html">Template WA</a>
+        <a href="audit-log.html" data-roles="kepala_sekolah,super_admin">Audit Log</a>
       </nav>
       <div class="user-box">
         <div data-user-name>...</div>
@@ -34,7 +37,9 @@
         <div class="panel">
           <div class="panel-head">
             <h2>Daftar Tagihan</h2>
-            <select id="filterStatus" style="width:180px;margin:0">
+            <div style="display:flex;gap:10px;align-items:center">
+              <button class="btn btn-ghost btn-sm" id="btnExport">Export CSV</button>
+              <select id="filterStatus" style="width:180px;margin:0">
               <option value="">Semua Status</option>
               <option value="aktif">Aktif</option>
               <option value="ditagihkan">Ditagihkan</option>
@@ -44,6 +49,7 @@
               <option value="dispensasi">Dispensasi</option>
               <option value="dibatalkan">Dibatalkan</option>
             </select>
+            </div>
           </div>
           <div class="panel-body" id="billsTableWrap">Memuat...</div>
         </div>

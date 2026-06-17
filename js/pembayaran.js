@@ -4,11 +4,12 @@
 
 import { supabase } from "./supabaseClient.js";
 import { requireAuth, applyRoleVisibility } from "./auth.js";
-import { showToast, formatRupiah, formatDate, statusBadge, qs } from "./utils.js";
+import { showToast, formatRupiah, formatDate, statusBadge, exportCSV, qs } from "./utils.js";
 
 const auth = await requireAuth();
 let mySchoolId = null;
 let myUserId = null;
+let currentHistoryData = [];
 
 if (auth) {
   applyRoleVisibility(auth.profile);
@@ -18,6 +19,20 @@ if (auth) {
   loadPending();
   loadHistory();
 }
+
+document.getElementById("btnExport").addEventListener("click", () => {
+  if (currentHistoryData.length === 0) {
+    showToast("Tidak ada data untuk diexport.", "error");
+    return;
+  }
+  exportCSV(
+    `pembayaran_${new Date().toISOString().slice(0, 10)}.csv`,
+    ["Siswa", "Nominal", "Metode", "Status", "Tanggal"],
+    currentHistoryData.map(p => [
+      p.bills?.students?.name ?? "-", p.amount, p.method, p.status, p.created_at,
+    ])
+  );
+});
 
 document.getElementById("btnAdd").addEventListener("click", () => {
   document.getElementById("modalOverlay").style.display = "flex";
@@ -105,7 +120,8 @@ async function loadHistory() {
     .limit(50);
 
   if (error) { wrap.innerHTML = `<div class="empty-state">${error.message}</div>`; return; }
-  if (!data || data.length === 0) { wrap.innerHTML = `<div class="empty-state">Belum ada riwayat pembayaran.</div>`; return; }
+  if (!data || data.length === 0) { wrap.innerHTML = `<div class="empty-state">Belum ada riwayat pembayaran.</div>`; currentHistoryData = []; return; }
+  currentHistoryData = data;
 
   wrap.innerHTML = `
     <table>

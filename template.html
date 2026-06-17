@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>Dashboard — SFMS Lite</title>
+<title>Template WA — SFMS Lite</title>
 <link rel="stylesheet" href="css/style.css" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&display=swap" rel="stylesheet">
@@ -13,12 +13,12 @@
     <aside class="sidebar" id="sidebar">
       <div class="brand">SFMS Lite<small data-school-name>Memuat...</small></div>
       <nav>
-        <a href="dashboard.html" class="active">Dashboard</a>
+        <a href="dashboard.html">Dashboard</a>
         <a href="siswa.html">Data Siswa</a>
         <a href="jenis-tagihan.html">Jenis Tagihan</a>
         <a href="tagihan.html">Tagihan</a>
         <a href="pembayaran.html">Pembayaran</a>
-        <a href="template.html">Template WA</a>
+        <a href="template.html" class="active">Template WA</a>
         <a href="audit-log.html" data-roles="kepala_sekolah,super_admin">Audit Log</a>
       </nav>
       <div class="user-box">
@@ -29,23 +29,19 @@
     </aside>
 
     <main class="main">
-      <div class="topbar"><h1>Dashboard</h1></div>
+      <div class="topbar"><h1>Template Pesan WhatsApp</h1></div>
       <div class="content">
-        <div class="cards" id="statCards">
-          <div class="card"><div class="label">Total Tagihan</div><div class="value">...</div></div>
-          <div class="card"><div class="label">Total Pembayaran</div><div class="value">...</div></div>
-          <div class="card"><div class="label">Total Tunggakan</div><div class="value">...</div></div>
-          <div class="card"><div class="label">Persentase Pelunasan</div><div class="value">...</div></div>
-        </div>
-
-        <div class="panel">
-          <div class="panel-head"><h2>Tunggakan Terbesar</h2></div>
-          <div class="panel-body" id="topDebtors">Memuat...</div>
-        </div>
+        <p class="helper-text" style="margin-top:0;margin-bottom:18px">
+          Variabel yang bisa dipakai: <code>{{nama_siswa}}</code>, <code>{{nama_ortu}}</code>,
+          <code>{{kelas}}</code>, <code>{{bulan}}</code>, <code>{{nominal}}</code>,
+          <code>{{jatuh_tempo}}</code>, <code>{{link_pembayaran}}</code>, <code>{{rincian}}</code>, <code>{{total}}</code>.
+          Template "rincian" otomatis berisi daftar tagihan kalau satu orang tua punya beberapa anak menunggak.
+        </p>
+        <div id="templateCards"></div>
       </div>
     </main>
   </div>
 
-  <script type="module" src="js/dashboard.js"></script>
+  <script type="module" src="js/template.js"></script>
 </body>
 </html>

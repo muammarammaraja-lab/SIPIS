@@ -3,11 +3,12 @@
 // ============================================================
 
 import { supabase } from "./supabaseClient.js";
-import { requireAuth } from "./auth.js";
+import { requireAuth, applyRoleVisibility } from "./auth.js";
 import { formatRupiah } from "./utils.js";
 
 const auth = await requireAuth();
 if (auth) {
+  applyRoleVisibility(auth.profile);
   loadStats();
   loadTopDebtors();
 }

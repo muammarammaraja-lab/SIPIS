@@ -9,15 +9,14 @@ Biaya untuk mulai: hampir Rp0 (kecuali biaya kirim WA per pesan ke Fonnte).
 
 - Skema database lengkap + Row Level Security (multi-tenant per sekolah) — `supabase/migrations/0001_init.sql`
 - Fungsi untuk halaman invoice publik (tanpa login) — `supabase/migrations/0003_public_invoice.sql`
-- Edge Function reminder WA otomatis (tanggal 1/5/10) — `supabase/functions/send-reminders/`
-- Halaman: Login, Dashboard, Data Siswa (CRUD), Tagihan (generate massal + list), Pembayaran (manual + verifikasi), Invoice publik untuk orang tua
+- Audit trail otomatis (trigger DB) + perbaikan RLS untuk `wa_templates` — `supabase/migrations/0004_audit_and_fixes.sql`
+- Edge Function reminder WA otomatis (tanggal 1/5/10), kini membaca template dari database — `supabase/functions/send-reminders/`
+- Halaman: Login, Dashboard, Data Siswa (CRUD), **Jenis Tagihan (CRUD)**, Tagihan (generate massal + list status + export CSV), Pembayaran (manual + verifikasi + export CSV), **Template Pesan WA (editable per jenis reminder)**, **Audit Log (riwayat aktivitas, khusus Kepala Sekolah)**, dan Invoice publik untuk orang tua
 
 ## Yang Belum Dibuat (Next Steps)
 
-- Halaman Audit Trail (tabel `audit_logs` sudah ada di schema, UI belum)
 - Manajemen User/Role oleh Kepala Sekolah (saat ini user dibuat manual via Dashboard Supabase)
-- Export laporan PDF/Excel/CSV
-- Template pesan WA yang bisa diedit dari UI (saat ini template hardcode di Edge Function)
+- Export laporan dalam format PDF (saat ini baru CSV, yang sebenarnya sudah bisa langsung dibuka di Excel)
 - Integrasi payment gateway otomatis (QRIS/VA) — saat ini hanya manual transfer + upload bukti
 - Tabel `parents` terpisah untuk dukungan 1 orang tua banyak anak yang lebih rapi (saat ini disederhanakan: kontak orang tua disimpan langsung di tabel `students`)
 
@@ -29,7 +28,8 @@ Biaya untuk mulai: hampir Rp0 (kecuali biaya kirim WA per pesan ke Fonnte).
 1. Daftar gratis di [supabase.com](https://supabase.com), buat project baru.
 2. Masuk ke **SQL Editor**, jalankan isi file `supabase/migrations/0001_init.sql`.
 3. Jalankan juga `supabase/migrations/0003_public_invoice.sql`.
-4. (Opsional) Jalankan `0002_seed_sample.sql` untuk data contoh — sesuaikan dulu komentarnya.
+4. Jalankan juga `supabase/migrations/0004_audit_and_fixes.sql` (perbaikan keamanan + audit trail).
+5. (Opsional) Jalankan `0002_seed_sample.sql` untuk data contoh — sesuaikan dulu komentarnya.
 
 ### 2. Buat User Pertama (Kepala Sekolah/Bendahara)
 1. Dashboard Supabase > **Authentication > Users > Add User**, isi email & password.
@@ -65,8 +65,11 @@ supabase login
 supabase link --project-ref YOUR-PROJECT-REF
 supabase functions deploy send-reminders
 supabase secrets set FONNTE_TOKEN=token-fonnte-kamu
+supabase secrets set APP_BASE_URL=https://domain-vercel-kamu.vercel.app
 ```
-(`SUPABASE_URL` dan `SUPABASE_SERVICE_ROLE_KEY` otomatis tersedia di environment Edge Function.)
+(`SUPABASE_URL` dan `SUPABASE_SERVICE_ROLE_KEY` otomatis tersedia di environment Edge Function. `APP_BASE_URL` dipakai untuk membangun link `{{link_pembayaran}}` di pesan WA — isi dengan domain Vercel kamu, tanpa garis miring di akhir.)
+
+**Catatan kalau kamu deploy ulang Edge Function ini setelah update kode**: jalankan ulang `supabase functions deploy send-reminders` dari folder project (pastikan Docker Desktop sedang berjalan).
 
 ### 7. Setup Cron Harian (Trigger Reminder Jam 08:00)
 Cara paling mudah & gratis — pakai [cron-job.org](https://cron-job.org):

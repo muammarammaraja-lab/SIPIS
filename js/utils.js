@@ -55,6 +55,25 @@ export function showToast(message, type = "info") {
   el._t = setTimeout(() => (el.style.display = "none"), 3000);
 }
 
+export function exportCSV(filename, headers, rows) {
+  const escape = (val) => {
+    const s = String(val ?? "");
+    return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  };
+  const lines = [headers.map(escape).join(",")];
+  rows.forEach(r => lines.push(r.map(escape).join(",")));
+  const csv = "\uFEFF" + lines.join("\n"); // BOM agar Excel baca UTF-8 dengan benar
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
+
 export function qs(selector, parent = document) {
   return parent.querySelector(selector);
 }

@@ -4,10 +4,11 @@
 
 import { supabase } from "./supabaseClient.js";
 import { requireAuth, applyRoleVisibility } from "./auth.js";
-import { showToast, formatRupiah, formatDate, statusBadge, qs } from "./utils.js";
+import { showToast, formatRupiah, formatDate, statusBadge, exportCSV, qs } from "./utils.js";
 
 const auth = await requireAuth();
 let mySchoolId = null;
+let currentBillsData = [];
 
 if (auth) {
   applyRoleVisibility(auth.profile);
@@ -16,6 +17,21 @@ if (auth) {
   loadClasses();
   loadBills();
 }
+
+document.getElementById("btnExport").addEventListener("click", () => {
+  if (currentBillsData.length === 0) {
+    showToast("Tidak ada data untuk diexport.", "error");
+    return;
+  }
+  exportCSV(
+    `tagihan_${new Date().toISOString().slice(0, 10)}.csv`,
+    ["Siswa", "Jenis Tagihan", "Periode", "Nominal", "Terbayar", "Jatuh Tempo", "Status"],
+    currentBillsData.map(b => [
+      b.students?.name ?? "-", b.billing_types?.name ?? "-", b.period ?? "-",
+      b.amount, b.amount_paid, b.due_date ?? "-", b.status,
+    ])
+  );
+});
 
 document.getElementById("btnGenerate").addEventListener("click", () => {
   document.getElementById("modalOverlay").style.display = "flex";
@@ -59,8 +75,10 @@ async function loadBills(statusFilter = "") {
   }
   if (!data || data.length === 0) {
     wrap.innerHTML = `<div class="empty-state">Belum ada tagihan untuk filter ini.</div>`;
+    currentBillsData = [];
     return;
   }
+  currentBillsData = data;
 
   wrap.innerHTML = `
     <table>

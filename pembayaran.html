@@ -15,8 +15,11 @@
       <nav>
         <a href="dashboard.html">Dashboard</a>
         <a href="siswa.html">Data Siswa</a>
+        <a href="jenis-tagihan.html">Jenis Tagihan</a>
         <a href="tagihan.html">Tagihan</a>
         <a href="pembayaran.html" class="active">Pembayaran</a>
+        <a href="template.html">Template WA</a>
+        <a href="audit-log.html" data-roles="kepala_sekolah,super_admin">Audit Log</a>
       </nav>
       <div class="user-box">
         <div data-user-name>...</div>
@@ -37,7 +40,10 @@
         </div>
 
         <div class="panel">
-          <div class="panel-head"><h2>Riwayat Pembayaran</h2></div>
+          <div class="panel-head">
+            <h2>Riwayat Pembayaran</h2>
+            <button class="btn btn-ghost btn-sm" id="btnExport">Export CSV</button>
+          </div>
           <div class="panel-body" id="historyWrap">Memuat...</div>
         </div>
       </div>
