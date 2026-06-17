@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Tagihan — SFMS Lite</title>
+<link rel="stylesheet" href="css/style.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar">
+      <div class="brand">SFMS Lite<small data-school-name>Memuat...</small></div>
+      <nav>
+        <a href="dashboard.html">Dashboard</a>
+        <a href="siswa.html">Data Siswa</a>
+        <a href="tagihan.html" class="active">Tagihan</a>
+        <a href="pembayaran.html">Pembayaran</a>
+      </nav>
+      <div class="user-box">
+        <div data-user-name>...</div>
+        <div class="role" data-user-role>...</div>
+        <button data-logout>Keluar</button>
+      </div>
+    </aside>
+
+    <main class="main">
+      <div class="topbar">
+        <h1>Tagihan</h1>
+        <button class="btn btn-primary" id="btnGenerate" data-roles="kepala_sekolah,bendahara,admin_keuangan">+ Generate Tagihan Massal</button>
+      </div>
+      <div class="content">
+        <div class="panel">
+          <div class="panel-head">
+            <h2>Daftar Tagihan</h2>
+            <select id="filterStatus" style="width:180px;margin:0">
+              <option value="">Semua Status</option>
+              <option value="aktif">Aktif</option>
+              <option value="ditagihkan">Ditagihkan</option>
+              <option value="sebagian_bayar">Sebagian Bayar</option>
+              <option value="lunas">Lunas</option>
+              <option value="menunggak">Menunggak</option>
+              <option value="dispensasi">Dispensasi</option>
+              <option value="dibatalkan">Dibatalkan</option>
+            </select>
+          </div>
+          <div class="panel-body" id="billsTableWrap">Memuat...</div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Modal generate tagihan massal -->
+  <div id="modalOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);align-items:center;justify-content:center;z-index:100">
+    <div style="background:#fff;border-radius:12px;padding:24px;width:420px;max-width:90%">
+      <h2 style="margin-top:0;font-size:16px">Generate Tagihan Massal</h2>
+      <form id="generateForm">
+        <label>Jenis Tagihan</label>
+        <select id="g_billing_type" required></select>
+        <label>Target</label>
+        <select id="g_target">
+          <option value="all">Semua Siswa Aktif</option>
+          <option value="class">Per Kelas</option>
+        </select>
+        <div id="classPicker" style="display:none">
+          <label>Pilih Kelas</label>
+          <select id="g_class"></select>
+        </div>
+        <label>Periode (contoh: 2026-07)</label>
+        <input type="text" id="g_period" placeholder="2026-07" />
+        <label>Nominal (Rp)</label>
+        <input type="number" id="g_amount" required />
+        <label>Jatuh Tempo</label>
+        <input type="date" id="g_due_date" required />
+        <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:8px">
+          <button type="button" class="btn btn-ghost" id="btnCancel">Batal</button>
+          <button type="submit" class="btn btn-primary">Generate</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script type="module" src="js/tagihan.js"></script>
+</body>
+</html>

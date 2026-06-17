@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Masuk — SFMS Lite</title>
+<link rel="stylesheet" href="css/style.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="login-wrap">
+    <div class="login-card">
+      <h1>SFMS Lite</h1>
+      <p class="sub">Masuk ke akun sekolah Anda</p>
+      <div id="errorBox" class="error" style="display:none"></div>
+      <form id="loginForm">
+        <label for="email">Email</label>
+        <input type="email" id="email" required placeholder="nama@sekolah.sch.id" />
+        <label for="password">Kata Sandi</label>
+        <input type="password" id="password" required placeholder="••••••••" />
+        <button type="submit" class="btn btn-primary" style="width:100%" id="submitBtn">Masuk</button>
+      </form>
+    </div>
+  </div>
+
+  <script type="module">
+    import { loginWithEmail } from "./js/auth.js";
+
+    const form = document.getElementById("loginForm");
+    const errorBox = document.getElementById("errorBox");
+    const submitBtn = document.getElementById("submitBtn");
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      errorBox.style.display = "none";
+      submitBtn.disabled = true;
+      submitBtn.textContent = "Memproses...";
+
+      const email = document.getElementById("email").value.trim();
+      const password = document.getElementById("password").value;
+
+      try {
+        await loginWithEmail(email, password);
+        window.location.href = "dashboard.html";
+      } catch (err) {
+        errorBox.textContent = "Email atau kata sandi salah.";
+        errorBox.style.display = "block";
+        submitBtn.disabled = false;
+        submitBtn.textContent = "Masuk";
+      }
+    });
+  </script>
+</body>
+</html>

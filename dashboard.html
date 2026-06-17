@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Dashboard — SFMS Lite</title>
+<link rel="stylesheet" href="css/style.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar">
+      <div class="brand">SFMS Lite<small data-school-name>Memuat...</small></div>
+      <nav>
+        <a href="dashboard.html" class="active">Dashboard</a>
+        <a href="siswa.html">Data Siswa</a>
+        <a href="tagihan.html">Tagihan</a>
+        <a href="pembayaran.html">Pembayaran</a>
+      </nav>
+      <div class="user-box">
+        <div data-user-name>...</div>
+        <div class="role" data-user-role>...</div>
+        <button data-logout>Keluar</button>
+      </div>
+    </aside>
+
+    <main class="main">
+      <div class="topbar"><h1>Dashboard</h1></div>
+      <div class="content">
+        <div class="cards" id="statCards">
+          <div class="card"><div class="label">Total Tagihan</div><div class="value">...</div></div>
+          <div class="card"><div class="label">Total Pembayaran</div><div class="value">...</div></div>
+          <div class="card"><div class="label">Total Tunggakan</div><div class="value">...</div></div>
+          <div class="card"><div class="label">Persentase Pelunasan</div><div class="value">...</div></div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head"><h2>Tunggakan Terbesar</h2></div>
+          <div class="panel-body" id="topDebtors">Memuat...</div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script type="module" src="js/dashboard.js"></script>
+</body>
+</html>
