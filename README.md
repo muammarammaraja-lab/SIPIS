@@ -18,9 +18,11 @@ Biaya untuk mulai: hampir Rp0 (kecuali biaya kirim WA per pesan ke Fonnte).
 
 - **Data Orang Tua** terstruktur (tabel `parents` + relasi many-to-many ke siswa) dengan sinkronisasi otomatis dua arah dari/ke form Data Siswa — `supabase/migrations/0006_parents_structure.sql` + halaman `orangtua.html`
 
+- **Payment Gateway otomatis (Midtrans Snap)** — QRIS/VA/E-Wallet, status tagihan otomatis Lunas tanpa verifikasi manual — `supabase/migrations/0007_payment_gateway.sql` + Edge Function `midtrans-charge` & `midtrans-webhook` + `js/midtransConfig.js`
+
 ## Yang Belum Dibuat (Next Steps)
 
-- Integrasi payment gateway otomatis (QRIS/VA) — saat ini hanya manual transfer + upload bukti
+- (Tidak ada lagi dari daftar awal — semua sudah selesai. Pengembangan lanjutan bisa dilihat di Bagian "Future Development" dokumen SRS sebelumnya.)
 
 ---
 
@@ -33,7 +35,8 @@ Biaya untuk mulai: hampir Rp0 (kecuali biaya kirim WA per pesan ke Fonnte).
 4. Jalankan juga `supabase/migrations/0004_audit_and_fixes.sql` (perbaikan keamanan + audit trail).
 5. Jalankan juga `supabase/migrations/0005_user_management.sql` (fitur manajemen user).
 6. Jalankan juga `supabase/migrations/0006_parents_structure.sql` (struktur data orang tua).
-7. (Opsional) Jalankan `0002_seed_sample.sql` untuk data contoh — sesuaikan dulu komentarnya.
+7. Jalankan juga `supabase/migrations/0007_payment_gateway.sql` (kolom tracking Midtrans).
+8. (Opsional) Jalankan `0002_seed_sample.sql` untuk data contoh — sesuaikan dulu komentarnya.
 
 ### 2. Buat User Pertama (Kepala Sekolah/Bendahara)
 1. Dashboard Supabase > **Authentication > Users > Add User**, isi email & password.
@@ -76,6 +79,24 @@ Sekalian deploy Edge Function kedua untuk fitur Manajemen User:
 ```bash
 supabase functions deploy create-user
 ```
+
+### 7. Setup Payment Gateway (Midtrans)
+1. Daftar di [midtrans.com](https://midtrans.com), pilih mode **Sandbox** dulu (gratis, untuk testing — tidak perlu dokumen bisnis).
+2. Di dashboard Midtrans, buka **Settings > Access Keys**, copy **Server Key** dan **Client Key**.
+3. Buka `js/midtransConfig.js`, ganti `MIDTRANS_CLIENT_KEY` dengan Client Key kamu (key ini aman ditaruh di kode publik).
+4. Deploy Edge Function & set secret Server Key:
+```bash
+supabase functions deploy midtrans-charge
+supabase functions deploy midtrans-webhook
+supabase secrets set MIDTRANS_SERVER_KEY=server-key-sandbox-kamu
+supabase secrets set MIDTRANS_ENV=sandbox
+```
+5. Di dashboard Midtrans, buka **Settings > Configuration**, isi **Payment Notification URL** dengan:
+```
+https://YOUR-PROJECT-REF.supabase.co/functions/v1/midtrans-webhook
+```
+6. Tes dulu di mode Sandbox dengan [kartu/akun simulasi Midtrans](https://docs.midtrans.com/docs/testing-payment-on-sandbox) sebelum mengajukan ke mode Production (yang butuh verifikasi dokumen bisnis ke Midtrans).
+7. Setelah lolos verifikasi dan siap live, ganti `MIDTRANS_ENV` jadi `production` di `js/midtransConfig.js` DAN di secret (`supabase secrets set MIDTRANS_ENV=production`), lalu pakai Server/Client Key dari mode Production (beda dengan Sandbox).
 (`SUPABASE_URL` dan `SUPABASE_SERVICE_ROLE_KEY` otomatis tersedia di environment Edge Function. `APP_BASE_URL` dipakai untuk membangun link `{{link_pembayaran}}` di pesan WA — isi dengan domain Vercel kamu, tanpa garis miring di akhir.)
 
 **Catatan kalau kamu deploy ulang Edge Function ini setelah update kode**: jalankan ulang `supabase functions deploy send-reminders` dari folder project (pastikan Docker Desktop sedang berjalan).
