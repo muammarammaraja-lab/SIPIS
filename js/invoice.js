@@ -3,7 +3,8 @@
 // tanpa perlu login). Token diambil dari ?t=... di URL.
 // ============================================================
 
-import { supabase } from "./supabaseClient.js";
+import { supabase, SUPABASE_URL } from "./supabaseClient.js";
+import { MIDTRANS_CLIENT_KEY, MIDTRANS_ENV } from "./midtransConfig.js";
 import { formatRupiah, formatDate, statusBadge, showToast } from "./utils.js";
 
 const params = new URLSearchParams(window.location.search);
@@ -44,6 +45,7 @@ function renderInvoice(b) {
 
   if (b.status === "lunas") {
     document.getElementById("paymentSection").style.display = "none";
+    document.getElementById("autoPaySection").style.display = "none";
   }
 }
 
@@ -84,5 +86,66 @@ document.getElementById("paymentForm")?.addEventListener("submit", async (e) => 
     showToast("Gagal mengirim konfirmasi: " + err.message, "error");
     submitBtn.disabled = false;
     submitBtn.textContent = "Kirim Konfirmasi";
+  }
+});
+
+// ---------- Midtrans Snap: pembayaran otomatis QRIS/VA/E-Wallet ----------
+let snapLoaded = false;
+function loadSnapScript() {
+  return new Promise((resolve, reject) => {
+    if (snapLoaded || window.snap) {
+      snapLoaded = true;
+      resolve();
+      return;
+    }
+    const src = MIDTRANS_ENV === "production"
+      ? "https://app.midtrans.com/snap/snap.js"
+      : "https://app.sandbox.midtrans.com/snap/snap.js";
+    const script = document.createElement("script");
+    script.src = src;
+    script.setAttribute("data-client-key", MIDTRANS_CLIENT_KEY);
+    script.onload = () => { snapLoaded = true; resolve(); };
+    script.onerror = () => reject(new Error("Gagal memuat skrip pembayaran Midtrans"));
+    document.body.appendChild(script);
+  });
+}
+
+document.getElementById("btnAutoPay")?.addEventListener("click", async () => {
+  if (!currentBill || !token) return;
+  const btn = document.getElementById("btnAutoPay");
+  btn.disabled = true;
+  btn.textContent = "Menyiapkan pembayaran...";
+
+  try {
+    await loadSnapScript();
+
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/midtrans-charge`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token }),
+    });
+    const result = await res.json();
+    if (!res.ok) throw new Error(result.error || "Gagal membuat transaksi");
+
+    window.snap.pay(result.snap_token, {
+      onSuccess: () => {
+        showToast("Pembayaran berhasil! Memuat ulang status tagihan...", "success");
+        setTimeout(() => window.location.reload(), 1500);
+      },
+      onPending: () => {
+        showToast("Pembayaran sedang diproses. Status akan terupdate otomatis.", "info");
+      },
+      onError: () => {
+        showToast("Pembayaran gagal. Silakan coba lagi.", "error");
+      },
+      onClose: () => {
+        btn.disabled = false;
+        btn.textContent = "Bayar Sekarang (Otomatis)";
+      },
+    });
+  } catch (err) {
+    showToast("Gagal memulai pembayaran: " + err.message, "error");
+    btn.disabled = false;
+    btn.textContent = "Bayar Sekarang (Otomatis)";
   }
 });
