@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Manajemen User — SFMS Lite</title>
+<link rel="stylesheet" href="css/style.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar">
+      <div class="brand">SFMS Lite<small data-school-name>Memuat...</small></div>
+      <nav>
+        <a href="dashboard.html">Dashboard</a>
+        <a href="siswa.html">Data Siswa</a>
+        <a href="jenis-tagihan.html">Jenis Tagihan</a>
+        <a href="tagihan.html">Tagihan</a>
+        <a href="pembayaran.html">Pembayaran</a>
+        <a href="template.html">Template WA</a>
+        <a href="users.html" class="active" data-roles="kepala_sekolah,super_admin">Manajemen User</a>
+        <a href="audit-log.html" data-roles="kepala_sekolah,super_admin">Audit Log</a>
+      </nav>
+      <div class="user-box">
+        <div data-user-name>...</div>
+        <div class="role" data-user-role>...</div>
+        <button data-logout>Keluar</button>
+      </div>
+    </aside>
+
+    <main class="main">
+      <div class="topbar">
+        <h1>Manajemen User</h1>
+        <button class="btn btn-primary" id="btnAdd">+ Tambah User</button>
+      </div>
+      <div class="content">
+        <div id="accessDenied" class="empty-state" style="display:none">Halaman ini hanya bisa diakses oleh Kepala Sekolah.</div>
+        <div class="panel" id="mainPanel">
+          <div class="panel-head"><h2>Daftar User Sekolah</h2></div>
+          <div class="panel-body" id="userTableWrap">Memuat...</div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <div id="modalOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);align-items:center;justify-content:center;z-index:100">
+    <div style="background:#fff;border-radius:12px;padding:24px;width:420px;max-width:90%">
+      <h2 style="margin-top:0;font-size:16px">Tambah User Baru</h2>
+      <div id="formError" class="error" style="display:none;background:var(--red-light);color:var(--red);padding:9px 12px;border-radius:7px;font-size:12.5px;margin-bottom:14px"></div>
+      <form id="form">
+        <label>Nama Lengkap</label>
+        <input type="text" id="f_full_name" required />
+        <label>Email (untuk login)</label>
+        <input type="email" id="f_email" required />
+        <label>Password Awal</label>
+        <input type="text" id="f_password" placeholder="minimal 6 karakter" required />
+        <p class="helper-text" style="margin-top:-10px">Sampaikan email & password ini ke staf yang bersangkutan secara langsung/pribadi.</p>
+        <label>Role</label>
+        <select id="f_role" required>
+          <option value="bendahara">Bendahara</option>
+          <option value="admin_keuangan">Admin Keuangan</option>
+          <option value="wali_kelas">Wali Kelas</option>
+          <option value="operator_sekolah">Operator Sekolah</option>
+        </select>
+        <div id="classPicker" style="display:none">
+          <label>Kelas yang Diampu</label>
+          <select id="f_class"></select>
+        </div>
+        <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:8px">
+          <button type="button" class="btn btn-ghost" id="btnCancel">Batal</button>
+          <button type="submit" class="btn btn-primary" id="btnSubmit">Simpan</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script type="module" src="js/users.js"></script>
+</body>
+</html>
