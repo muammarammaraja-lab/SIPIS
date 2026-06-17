@@ -7,7 +7,17 @@
 --    menyimpan data sebelum & sesudah perubahan.
 -- ============================================================
 
--- ---------- 1. FIX: aktifkan RLS untuk wa_templates ----------
+-- ---------- 1. FIX: tabel wa_templates ternyata belum pernah dibuat,
+--    dan otomatis belum dilindungi RLS. Dibuat di sini.
+create table if not exists wa_templates (
+  id uuid primary key default gen_random_uuid(),
+  school_id uuid not null references schools(id),
+  reminder_type text not null check (reminder_type in ('friendly','medium','final')),
+  body text not null,
+  is_active boolean default true,
+  unique (school_id, reminder_type)
+);
+
 alter table wa_templates enable row level security;
 
 create policy wa_templates_all on wa_templates for all
