@@ -16,10 +16,11 @@ Biaya untuk mulai: hampir Rp0 (kecuali biaya kirim WA per pesan ke Fonnte).
 
 - Export Laporan PDF (ringkasan per kelas, detail tagihan, daftar tunggakan) menggunakan jsPDF dari CDN, tanpa server tambahan — halaman `laporan.html`
 
+- **Data Orang Tua** terstruktur (tabel `parents` + relasi many-to-many ke siswa) dengan sinkronisasi otomatis dua arah dari/ke form Data Siswa — `supabase/migrations/0006_parents_structure.sql` + halaman `orangtua.html`
+
 ## Yang Belum Dibuat (Next Steps)
 
 - Integrasi payment gateway otomatis (QRIS/VA) — saat ini hanya manual transfer + upload bukti
-- Tabel `parents` terpisah untuk dukungan 1 orang tua banyak anak yang lebih rapi (saat ini disederhanakan: kontak orang tua disimpan langsung di tabel `students`)
 
 ---
 
@@ -31,7 +32,8 @@ Biaya untuk mulai: hampir Rp0 (kecuali biaya kirim WA per pesan ke Fonnte).
 3. Jalankan juga `supabase/migrations/0003_public_invoice.sql`.
 4. Jalankan juga `supabase/migrations/0004_audit_and_fixes.sql` (perbaikan keamanan + audit trail).
 5. Jalankan juga `supabase/migrations/0005_user_management.sql` (fitur manajemen user).
-6. (Opsional) Jalankan `0002_seed_sample.sql` untuk data contoh — sesuaikan dulu komentarnya.
+6. Jalankan juga `supabase/migrations/0006_parents_structure.sql` (struktur data orang tua).
+7. (Opsional) Jalankan `0002_seed_sample.sql` untuk data contoh — sesuaikan dulu komentarnya.
 
 ### 2. Buat User Pertama (Kepala Sekolah/Bendahara)
 1. Dashboard Supabase > **Authentication > Users > Add User**, isi email & password.
