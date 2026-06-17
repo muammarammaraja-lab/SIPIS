@@ -14,9 +14,10 @@ Biaya untuk mulai: hampir Rp0 (kecuali biaya kirim WA per pesan ke Fonnte).
 - Edge Function reminder WA otomatis (tanggal 1/5/10), kini membaca template dari database — `supabase/functions/send-reminders/`
 - Halaman: Login, Dashboard, Data Siswa (CRUD), **Jenis Tagihan (CRUD)**, Tagihan (generate massal + list status + export CSV), Pembayaran (manual + verifikasi + export CSV), **Template Pesan WA (editable per jenis reminder)**, **Manajemen User**, **Audit Log (riwayat aktivitas, khusus Kepala Sekolah)**, dan Invoice publik untuk orang tua
 
+- Export Laporan PDF (ringkasan per kelas, detail tagihan, daftar tunggakan) menggunakan jsPDF dari CDN, tanpa server tambahan — halaman `laporan.html`
+
 ## Yang Belum Dibuat (Next Steps)
 
-- Export laporan dalam format PDF (saat ini baru CSV, yang sebenarnya sudah bisa langsung dibuka di Excel)
 - Integrasi payment gateway otomatis (QRIS/VA) — saat ini hanya manual transfer + upload bukti
 - Tabel `parents` terpisah untuk dukungan 1 orang tua banyak anak yang lebih rapi (saat ini disederhanakan: kontak orang tua disimpan langsung di tabel `students`)
 

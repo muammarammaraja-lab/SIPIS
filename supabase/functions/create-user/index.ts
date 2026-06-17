@@ -4,6 +4,8 @@
 // akun staf baru (Bendahara, Admin Keuangan, Wali Kelas, Operator)
 // ke sekolahnya sendiri. Memakai service_role key di sisi server,
 // TIDAK PERNAH diekspos ke browser.
+// Fungsi ini dipanggil LANGSUNG dari browser (bukan dari cron),
+// jadi wajib menangani CORS.
 // ============================================================
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
@@ -13,24 +15,38 @@ const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
 const ALLOWED_ROLES = ["bendahara", "admin_keuangan", "wali_kelas", "operator_sekolah"];
 
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "POST, OPTIONS",
+};
+
 function json(body: unknown, status = 200) {
-  return new Response(JSON.stringify(body), { status, headers: { "Content-Type": "application/json" } });
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { "Content-Type": "application/json", ...corsHeaders },
+  });
 }
 
 Deno.serve(async (req) => {
+  // Browser selalu mengirim OPTIONS dulu (preflight) sebelum POST
+  // lintas-origin — wajib dibalas dengan header CORS, atau browser
+  // akan menggagalkan request aslinya dengan "Failed to fetch".
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: corsHeaders });
+  }
+
   if (req.method !== "POST") return json({ error: "Method not allowed" }, 405);
 
   const authHeader = req.headers.get("Authorization");
   if (!authHeader) return json({ error: "Missing authorization header" }, 401);
 
-  // Client yang "berbicara sebagai" pemanggil, untuk mengidentifikasi siapa dia
   const callerClient = createClient(SUPABASE_URL, SERVICE_ROLE_KEY, {
     global: { headers: { Authorization: authHeader } },
   });
   const { data: callerData, error: callerErr } = await callerClient.auth.getUser();
   if (callerErr || !callerData?.user) return json({ error: "Unauthorized" }, 401);
 
-  // Client admin (service role) untuk operasi yang butuh privilese tinggi
   const adminClient = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
 
   const { data: callerProfile, error: profileErr } = await adminClient
@@ -82,7 +98,6 @@ Deno.serve(async (req) => {
   });
 
   if (insertErr) {
-    // rollback: hapus auth user kalau insert profile gagal, supaya tidak ada user "yatim"
     await adminClient.auth.admin.deleteUser(newUser.user!.id);
     return json({ error: "Gagal menyimpan profil: " + insertErr.message }, 400);
   }

@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Laporan — SFMS Lite</title>
+<link rel="stylesheet" href="css/style.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar">
+      <div class="brand">SFMS Lite<small data-school-name>Memuat...</small></div>
+      <nav>
+        <a href="dashboard.html">Dashboard</a>
+        <a href="siswa.html">Data Siswa</a>
+        <a href="jenis-tagihan.html">Jenis Tagihan</a>
+        <a href="tagihan.html">Tagihan</a>
+        <a href="pembayaran.html">Pembayaran</a>
+        <a href="template.html">Template WA</a>
+        <a href="laporan.html" class="active">Laporan</a>
+        <a href="users.html" data-roles="kepala_sekolah,super_admin">Manajemen User</a>
+        <a href="audit-log.html" data-roles="kepala_sekolah,super_admin">Audit Log</a>
+      </nav>
+      <div class="user-box">
+        <div data-user-name>...</div>
+        <div class="role" data-user-role>...</div>
+        <button data-logout>Keluar</button>
+      </div>
+    </aside>
+
+    <main class="main">
+      <div class="topbar"><h1>Laporan Keuangan</h1></div>
+      <div class="content">
+        <div class="panel" style="margin-bottom:20px">
+          <div class="panel-head"><h2>Generate Laporan PDF</h2></div>
+          <div class="panel-body">
+            <div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-end">
+              <div style="flex:1;min-width:180px">
+                <label>Jenis Laporan</label>
+                <select id="reportType">
+                  <option value="ringkasan">Ringkasan per Kelas</option>
+                  <option value="detail">Detail Seluruh Tagihan</option>
+                  <option value="tunggakan">Daftar Tunggakan</option>
+                </select>
+              </div>
+              <div style="flex:1;min-width:180px">
+                <label>Filter Periode (opsional, contoh: 2026-07)</label>
+                <input type="text" id="reportPeriod" placeholder="Kosongkan untuk semua periode" />
+              </div>
+              <div style="margin-bottom:14px">
+                <button class="btn btn-primary" id="btnGenerate">Download PDF</button>
+              </div>
+            </div>
+            <p class="helper-text" id="statusText" style="margin-top:0"></p>
+          </div>
+        </div>
+
+        <div class="panel">
+          <div class="panel-head"><h2>Pratinjau Ringkasan</h2></div>
+          <div class="panel-body" id="previewWrap">Memuat...</div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <script type="module" src="js/laporan.js"></script>
+</body>
+</html>
