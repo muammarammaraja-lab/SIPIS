@@ -105,7 +105,7 @@ async function sendWhatsApp(to: string, message: string) {
 
 Deno.serve(async (_req) => {
   const today = new Date();
-  const reminderType = getReminderType(today);
+  const reminderType = getReminderType(today) ?? "friendly";
 
   if (!reminderType) {
     return new Response(JSON.stringify({ skipped: true, reason: "Bukan tanggal 1/5/10" }), { status: 200 });
