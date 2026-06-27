@@ -91,5 +91,24 @@
   </div>
 
   <script type="module" src="js/tagihan.js"></script>
+  <!-- Modal Edit Tagihan -->
+<div id="editModalOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);align-items:center;justify-content:center;z-index:100">
+  <div style="background:#fff;border-radius:12px;padding:24px;width:400px;max-width:90%">
+    <h2 style="margin-top:0;font-size:16px">Edit Tagihan</h2>
+    <form id="editBillForm">
+      <input type="hidden" id="editBillId" />
+      <label>Siswa</label>
+      <input type="text" id="e_siswa" disabled style="background:#f5f5f5" />
+      <label>Periode (contoh: Juni 2026)</label>
+      <input type="text" id="e_period" placeholder="Juni 2026" />
+      <label>Jatuh Tempo</label>
+      <input type="date" id="e_due_date" />
+      <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:8px">
+        <button type="button" class="btn btn-ghost" id="btnCancelEdit">Batal</button>
+        <button type="submit" class="btn btn-primary">Simpan</button>
+      </div>
+    </form>
+  </div>
+</div>
 </body>
 </html>
