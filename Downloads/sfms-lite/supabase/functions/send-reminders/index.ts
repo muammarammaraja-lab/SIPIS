@@ -1,3 +1,10 @@
+// ============================================================
+// SFMS LITE — Edge Function: send-reminders
+// Dijalankan setiap hari jam 08:00 oleh cron eksternal (cron-job.org)
+// atau pg_cron. Logic: tanggal 1 = Friendly, 5 = Medium, 10 = Final.
+// Provider WA: Fonnte (pay-per-message, tanpa biaya bulanan).
+// ============================================================
+
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
@@ -6,6 +13,7 @@ const FONNTE_TOKEN = Deno.env.get("FONNTE_TOKEN")!;
 
 const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
 
+// ---- 1. Tentukan tipe reminder berdasarkan tanggal hari ini ----
 function getReminderType(date: Date): "friendly" | "medium" | "final" | null {
   const day = date.getDate();
   if (day === 1) return "friendly";
@@ -14,6 +22,7 @@ function getReminderType(date: Date): "friendly" | "medium" | "final" | null {
   return null;
 }
 
+// ---- 2. Template pesan sederhana (bisa dipindah ke tabel wa_templates nanti) ----
 function renderTemplate(type: string, items: { nama_siswa: string; kelas: string; bulan: string; nominal: number }[]) {
   const total = items.reduce((s, i) => s + i.nominal, 0);
   const rincian = items
@@ -35,6 +44,7 @@ function renderTemplate(type: string, items: { nama_siswa: string; kelas: string
   );
 }
 
+// ---- 3. Kirim via Fonnte ----
 async function sendWhatsApp(to: string, message: string) {
   const res = await fetch("https://api.fonnte.com/send", {
     method: "POST",
@@ -55,11 +65,13 @@ Deno.serve(async (_req) => {
     return new Response(JSON.stringify({ skipped: true, reason: "Bukan tanggal 1/5/10" }), { status: 200 });
   }
 
+  // Ambil seluruh tagihan yang belum lunas, belum dibatalkan, belum dispensasi
   const { data: bills, error } = await supabase
     .from("bills")
     .select(`
       id, school_id, amount, amount_paid, period, status,
       students ( name, parent_whatsapp ),
+      classes:students(class_id), 
       billing_types ( name )
     `)
     .not("status", "in", "(lunas,dibatalkan,dispensasi)");
@@ -68,6 +80,7 @@ Deno.serve(async (_req) => {
     return new Response(JSON.stringify({ error: error.message }), { status: 500 });
   }
 
+  // Group per nomor WA orang tua (Split Billing sederhana)
   const grouped: Record<string, { school_id: string; bill_ids: string[]; items: any[] }> = {};
 
   for (const b of bills ?? []) {
@@ -78,7 +91,7 @@ Deno.serve(async (_req) => {
     grouped[key].bill_ids.push(b.id);
     grouped[key].items.push({
       nama_siswa: student.name,
-      kelas: "-",
+      kelas: "-", // catatan: join nama kelas bisa ditambahkan dgn query terpisah jika perlu
       bulan: b.period ?? "-",
       nominal: Number(b.amount) - Number(b.amount_paid ?? 0),
     });
@@ -90,6 +103,7 @@ Deno.serve(async (_req) => {
     const message = renderTemplate(reminderType, group.items);
     const sendResult = await sendWhatsApp(phone, message);
 
+    // Catat log
     await supabase.from("wa_logs").insert(
       group.bill_ids.map((billId) => ({
         school_id: group.school_id,
@@ -101,6 +115,7 @@ Deno.serve(async (_req) => {
       }))
     );
 
+    // Update last_reminder_type pada setiap bill agar idempotent
     await supabase
       .from("bills")
       .update({ last_reminder_type: reminderType, last_reminder_sent_at: new Date().toISOString() })
