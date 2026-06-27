@@ -51,19 +51,28 @@ Deno.serve(async (req) => {
     return new Response(JSON.stringify({ error: "Payment tidak ditemukan" }), { status: 404 });
   }
 
-  const isSuccess = ["capture", "settlement"].includes(transaction_status);
+  const isSuccess = transaction_status === "settlement" ||
+  (transaction_status === "capture" && body.fraud_status === "accept");
   const isFailed = ["deny", "cancel", "expire"].includes(transaction_status);
 
-  if (isSuccess && payment.status !== "diterima") {
-    await supabase.from("payments").update({ status: "diterima", verified_at: new Date().toISOString() }).eq("id", payment.id);
+ if (isSuccess && payment.status !== "diterima") {
+  await supabase.from("payments").update({
+    status: "diterima",
+    verified_at: new Date().toISOString(),
+    method: mapMethod(payment_type)
+  }).eq("id", payment.id);
 
-    const bill: any = payment.bills;
-    const newPaid = Number(bill.amount_paid || 0) + Number(payment.amount);
-    const newStatus = newPaid >= Number(bill.amount) ? "lunas" : "sebagian_bayar";
-    await supabase.from("bills").update({ amount_paid: newPaid, status: newStatus }).eq("id", bill.id);
-  } else if (isFailed) {
-    await supabase.from("payments").update({ status: "ditolak" }).eq("id", payment.id);
-  }
+  const bill: any = payment.bills;
+  const newPaid = Number(bill.amount_paid || 0) + Number(payment.amount);
+  const newStatus = newPaid >= Number(bill.amount) ? "lunas" : "sebagian_bayar";
+  await supabase.from("bills").update({ amount_paid: newPaid, status: newStatus }).eq("id", bill.id);
+
+} else if (isFailed) {
+  await supabase.from("payments").update({
+    status: "ditolak",
+    method: mapMethod(payment_type)
+  }).eq("id", payment.id);
+}
   // status "pending" dibiarkan apa adanya, menunggu notifikasi berikutnya dari Midtrans
 
   return new Response(JSON.stringify({ received: true }), { status: 200 });
