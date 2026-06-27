@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Invoice — SFMS Lite</title>
+<link rel="stylesheet" href="css/style.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="invoice-wrap">
+    <div id="loadingState" class="empty-state">Memuat tagihan...</div>
+
+    <div id="invoiceContent" style="display:none">
+      <div class="invoice-header">
+        <div class="school" id="schoolName"></div>
+        <div style="font-size:13px;color:var(--grey-700)" id="studentInfo"></div>
+      </div>
+
+      <div class="panel">
+        <div class="panel-body">
+          <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px">
+            <span>Jenis Tagihan</span><strong id="billingTypeName"></strong>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px">
+            <span>Periode</span><strong id="period"></strong>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px">
+            <span>Jatuh Tempo</span><strong id="dueDate"></strong>
+          </div>
+          <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:6px">
+            <span>Status</span><span id="statusBadge"></span>
+          </div>
+          <hr style="border:none;border-top:1px solid var(--grey-200);margin:14px 0" />
+          <div style="font-size:12.5px;color:var(--grey-700);text-align:center">Sisa yang harus dibayar</div>
+          <div class="invoice-amount" id="remainingAmount"></div>
+        </div>
+      </div>
+
+      <div class="panel" style="margin-top:16px" id="paymentSection">
+        <div class="panel-head"><h2>Konfirmasi Pembayaran</h2></div>
+        <div class="panel-body">
+          <p class="helper-text" style="margin-top:0">
+            Silakan transfer ke rekening sekolah, lalu upload bukti transfer di bawah ini.
+            Bendahara akan memverifikasi dalam waktu singkat.
+          </p>
+          <form id="paymentForm">
+            <label>Nominal yang Ditransfer (Rp)</label>
+            <input type="number" id="amountPaid" required />
+            <label>Upload Bukti Transfer</label>
+            <input type="file" id="proofFile" accept="image/*,application/pdf" required />
+            <button type="submit" class="btn btn-primary" style="width:100%">Kirim Konfirmasi</button>
+          </form>
+        </div>
+      </div>
+    </div>
+
+    <div id="notFoundState" class="empty-state" style="display:none">
+      Invoice tidak ditemukan atau link tidak valid. Hubungi sekolah untuk bantuan.
+    </div>
+  </div>
+
+  <script type="module" src="js/invoice.js"></script>
+</body>
+</html>

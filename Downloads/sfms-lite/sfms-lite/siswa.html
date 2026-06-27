@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Data Siswa — SFMS Lite</title>
+<link rel="stylesheet" href="css/style.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar">
+      <div class="brand">SFMS Lite<small data-school-name>Memuat...</small></div>
+      <nav>
+        <a href="dashboard.html">Dashboard</a>
+        <a href="siswa.html" class="active">Data Siswa</a>
+        <a href="tagihan.html">Tagihan</a>
+        <a href="pembayaran.html">Pembayaran</a>
+      </nav>
+      <div class="user-box">
+        <div data-user-name>...</div>
+        <div class="role" data-user-role>...</div>
+        <button data-logout>Keluar</button>
+      </div>
+    </aside>
+    <main class="main">
+      <div class="topbar">
+        <h1>Data Siswa</h1>
+        <button class="btn btn-primary" id="btnAdd" data-roles="kepala_sekolah,bendahara,admin_keuangan,operator_sekolah">+ Tambah Siswa</button>
+      </div>
+      <div class="content">
+        <div class="panel">
+          <div class="panel-head">
+            <h2>Daftar Siswa</h2>
+            <input type="text" id="searchBox" placeholder="Cari nama / NIS..." style="width:220px;margin:0" />
+          </div>
+          <div class="panel-body" id="studentTableWrap">Memuat...</div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <!-- Modal tambah/edit siswa -->
+  <div id="modalOverlay" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);align-items:center;justify-content:center;z-index:100">
+    <div style="background:#fff;border-radius:12px;padding:24px;width:400px;max-width:90%">
+      <h2 style="margin-top:0;font-size:16px" id="modalTitle">Tambah Siswa</h2>
+      <form id="studentForm">
+        <input type="hidden" id="studentId" />
+        <label>Nama Lengkap</label>
+        <input type="text" id="f_name" required />
+        <label>NIS</label>
+        <input type="text" id="f_nis" />
+        <label>NISN</label>
+        <input type="text" id="f_nisn" />
+        <label>Kelas</label>
+        <select id="f_class_id" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:6px;margin-bottom:8px">
+          <option value="">-- Pilih Kelas --</option>
+        </select>
+        <label>Nama Orang Tua/Wali</label>
+        <input type="text" id="f_parent_name" />
+        <label>No. WhatsApp Orang Tua (format +62...)</label>
+        <input type="text" id="f_parent_whatsapp" placeholder="+6281234567890" required />
+        <label>Email Orang Tua (opsional)</label>
+        <input type="email" id="f_parent_email" />
+        <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:8px">
+          <button type="button" class="btn btn-ghost" id="btnCancel">Batal</button>
+          <button type="submit" class="btn btn-primary">Simpan</button>
+        </div>
+      </form>
+    </div>
+  </div>
+  <script type="module" src="js/siswa.js"></script>
+</body>
+</html>

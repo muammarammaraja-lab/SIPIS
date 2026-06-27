@@ -1,0 +1,161 @@
+/* ============================================================
+   SFMS LITE — Stylesheet
+   Tokens: warna navy (kepercayaan/keuangan), aksen hijau (lunas),
+   amber (menunggak), merah (ditolak/dibatalkan).
+   ============================================================ */
+
+:root {
+  --navy: #1f3864;
+  --navy-dark: #142847;
+  --blue: #2e75b6;
+  --blue-light: #e8f1fa;
+  --green: #1e7a4d;
+  --green-light: #e6f4ec;
+  --amber: #b3650b;
+  --amber-light: #fdf1e2;
+  --red: #b3261e;
+  --red-light: #fbe9e7;
+  --grey-900: #1f2329;
+  --grey-700: #4b5258;
+  --grey-400: #9aa3ab;
+  --grey-200: #e4e8ec;
+  --grey-100: #f4f6f8;
+  --white: #ffffff;
+  --radius: 10px;
+  --shadow: 0 1px 3px rgba(20, 30, 50, 0.08), 0 1px 2px rgba(20, 30, 50, 0.06);
+  --font: 'Plus Jakarta Sans', system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: var(--font);
+  background: var(--grey-100);
+  color: var(--grey-900);
+  font-size: 14px;
+}
+
+a { color: var(--blue); text-decoration: none; }
+
+/* ---------- Layout shell ---------- */
+.app-shell { display: flex; min-height: 100vh; }
+
+.sidebar {
+  width: 230px;
+  background: var(--navy);
+  color: #fff;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+}
+.sidebar .brand {
+  padding: 22px 20px;
+  font-weight: 700;
+  font-size: 16px;
+  border-bottom: 1px solid rgba(255,255,255,0.12);
+  letter-spacing: 0.2px;
+}
+.sidebar .brand small { display: block; font-weight: 400; opacity: 0.65; font-size: 11px; margin-top: 2px; }
+.sidebar nav { flex: 1; padding: 14px 10px; }
+.sidebar nav a {
+  display: block;
+  color: rgba(255,255,255,0.78);
+  padding: 10px 14px;
+  border-radius: 8px;
+  margin-bottom: 2px;
+  font-size: 13.5px;
+}
+.sidebar nav a.active { background: rgba(255,255,255,0.12); color: #fff; font-weight: 600; }
+.sidebar nav a:hover { background: rgba(255,255,255,0.08); color: #fff; }
+.sidebar .user-box {
+  padding: 16px 20px;
+  border-top: 1px solid rgba(255,255,255,0.12);
+  font-size: 12.5px;
+}
+.sidebar .user-box .role { opacity: 0.6; }
+.sidebar .user-box button {
+  margin-top: 8px; width: 100%;
+  background: rgba(255,255,255,0.1); color: #fff; border: none;
+  padding: 7px; border-radius: 6px; cursor: pointer; font-size: 12px;
+}
+
+.main { flex: 1; min-width: 0; }
+.topbar {
+  background: #fff; border-bottom: 1px solid var(--grey-200);
+  padding: 16px 28px; display: flex; align-items: center; justify-content: space-between;
+}
+.topbar h1 { font-size: 18px; margin: 0; font-weight: 700; }
+.content { padding: 24px 28px; }
+
+/* ---------- Cards / widgets ---------- */
+.cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
+.card {
+  background: #fff; border-radius: var(--radius); padding: 18px 20px;
+  box-shadow: var(--shadow); border: 1px solid var(--grey-200);
+}
+.card .label { font-size: 12px; color: var(--grey-700); margin-bottom: 6px; }
+.card .value { font-size: 24px; font-weight: 700; color: var(--navy); }
+.card .sub { font-size: 11.5px; color: var(--grey-400); margin-top: 4px; }
+
+.panel { background: #fff; border-radius: var(--radius); border: 1px solid var(--grey-200); box-shadow: var(--shadow); }
+.panel-head { padding: 16px 20px; border-bottom: 1px solid var(--grey-200); display: flex; justify-content: space-between; align-items: center; }
+.panel-head h2 { font-size: 15px; margin: 0; }
+.panel-body { padding: 18px 20px; }
+
+/* ---------- Table ---------- */
+table { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+th { text-align: left; color: var(--grey-700); font-weight: 600; padding: 10px 12px; border-bottom: 2px solid var(--grey-200); white-space: nowrap; }
+td { padding: 10px 12px; border-bottom: 1px solid var(--grey-200); vertical-align: middle; }
+tr:hover td { background: var(--grey-100); }
+
+/* ---------- Badges ---------- */
+.badge { display: inline-block; padding: 3px 10px; border-radius: 999px; font-size: 11.5px; font-weight: 600; }
+.badge-lunas { background: var(--green-light); color: var(--green); }
+.badge-menunggak { background: var(--red-light); color: var(--red); }
+.badge-sebagian { background: var(--amber-light); color: var(--amber); }
+.badge-draft, .badge-aktif, .badge-ditagihkan { background: var(--blue-light); color: var(--blue); }
+.badge-dispensasi, .badge-dibatalkan { background: var(--grey-200); color: var(--grey-700); }
+
+/* ---------- Forms / buttons ---------- */
+label { display: block; font-size: 12.5px; font-weight: 600; margin-bottom: 5px; color: var(--grey-700); }
+input, select, textarea {
+  width: 100%; padding: 9px 11px; border: 1px solid var(--grey-200); border-radius: 7px;
+  font-family: var(--font); font-size: 13.5px; margin-bottom: 14px; background: #fff;
+}
+input:focus, select:focus, textarea:focus { outline: 2px solid var(--blue); outline-offset: 1px; border-color: var(--blue); }
+
+.btn { display: inline-block; padding: 9px 16px; border-radius: 7px; border: none; font-size: 13.5px; font-weight: 600; cursor: pointer; }
+.btn-primary { background: var(--navy); color: #fff; }
+.btn-primary:hover { background: var(--navy-dark); }
+.btn-success { background: var(--green); color: #fff; }
+.btn-danger { background: var(--red); color: #fff; }
+.btn-ghost { background: transparent; color: var(--navy); border: 1px solid var(--grey-200); }
+.btn-sm { padding: 5px 10px; font-size: 12px; }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.toolbar { display: flex; gap: 10px; align-items: center; margin-bottom: 16px; flex-wrap: wrap; }
+.toolbar .grow { flex: 1; }
+
+.empty-state { text-align: center; padding: 50px 20px; color: var(--grey-400); }
+
+/* ---------- Login page ---------- */
+.login-wrap { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: var(--navy); }
+.login-card { background: #fff; padding: 40px 36px; border-radius: 14px; width: 360px; box-shadow: 0 20px 50px rgba(0,0,0,0.25); }
+.login-card h1 { font-size: 18px; margin: 0 0 4px; color: var(--navy); }
+.login-card p.sub { font-size: 12.5px; color: var(--grey-700); margin: 0 0 22px; }
+.login-card .error { background: var(--red-light); color: var(--red); padding: 9px 12px; border-radius: 7px; font-size: 12.5px; margin-bottom: 14px; }
+
+/* ---------- Invoice public page ---------- */
+.invoice-wrap { max-width: 520px; margin: 0 auto; padding: 30px 20px; }
+.invoice-header { text-align: center; margin-bottom: 24px; }
+.invoice-header .school { font-weight: 700; color: var(--navy); font-size: 16px; }
+.invoice-amount { font-size: 28px; font-weight: 700; color: var(--navy); text-align: center; margin: 8px 0 4px; }
+
+.helper-text { font-size: 12px; color: var(--grey-400); margin-top: -8px; margin-bottom: 14px; }
+
+@media (max-width: 760px) {
+  .sidebar { position: fixed; left: -230px; top: 0; height: 100%; z-index: 50; transition: left 0.2s; }
+  .sidebar.open { left: 0; }
+  .content { padding: 16px; }
+}
