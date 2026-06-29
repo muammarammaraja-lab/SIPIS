@@ -20,6 +20,22 @@ const btnAdd    = document.getElementById("btnAdd");
 const modalOv   = document.getElementById("modalOverlay");
 const form      = document.getElementById("studentForm");
 
+// ── Mobile panel-head fix ─────────────────────────────────
+(function injectMobileStyle() {
+  if (document.getElementById("_siswa_style")) return;
+  const s = document.createElement("style");
+  s.id = "_siswa_style";
+  s.textContent = `
+    @media (max-width: 540px) {
+      .panel-head { flex-wrap: wrap !important; gap: 10px !important; }
+      .panel-head > div { width: 100% !important; display: flex !important; gap: 8px !important; align-items: center !important; }
+      .panel-head > div input[type="text"] { flex: 1 !important; min-width: 0 !important; margin: 0 !important; }
+      .panel-head > div .btn { flex-shrink: 0 !important; white-space: nowrap !important; }
+    }
+  `;
+  document.head.appendChild(s);
+})();
+
 let allStudents = [];
 let classesMap  = {};   // id → name
 
@@ -92,10 +108,12 @@ function renderStudents(data) {
   cardList.innerHTML = data.map(s => `
     <div class="card-list-item">
       <div class="cli-name">${s.name}</div>
-      <div class="cli-meta">
-        ${s.nis ? `<span>NIS: ${s.nis}</span>` : ""}
-        <span>${s.classes?.name ?? "Belum ada kelas"}</span>
-        ${s.parent_whatsapp ? `<span>WA: ${s.parent_whatsapp}</span>` : ""}
+      <div class="cli-meta" style="flex-direction:column;gap:3px">
+        <div style="display:flex;gap:12px;flex-wrap:wrap">
+          ${s.nis ? `<span>NIS: ${s.nis}</span>` : ""}
+          <span>${s.classes?.name ?? "Belum ada kelas"}</span>
+        </div>
+        ${s.parent_whatsapp ? `<span style="color:var(--grey-600)">WA: ${s.parent_whatsapp}</span>` : ""}
       </div>
       <div class="cli-footer">
         ${statusBadge(s.status ?? "aktif")}

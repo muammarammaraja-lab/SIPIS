@@ -20,6 +20,22 @@ const btnAdd    = document.getElementById("btnAdd");
 const modalOv   = document.getElementById("modalOverlay");
 const form      = document.getElementById("parentForm");
 
+// ── Mobile panel-head fix ─────────────────────────────────
+(function injectMobileStyle() {
+  if (document.getElementById("_ot_style")) return;
+  const s = document.createElement("style");
+  s.id = "_ot_style";
+  s.textContent = `
+    @media (max-width: 540px) {
+      .panel-head { flex-wrap: wrap !important; gap: 10px !important; }
+      .panel-head > div { width: 100% !important; display: flex !important; gap: 8px !important; align-items: center !important; }
+      .panel-head > div input[type="text"] { flex: 1 !important; min-width: 0 !important; margin: 0 !important; }
+      .panel-head > div .btn { flex-shrink: 0 !important; white-space: nowrap !important; }
+    }
+  `;
+  document.head.appendChild(s);
+})();
+
 let allParents = [];
 
 // ── Load orang tua ────────────────────────────────────────
@@ -79,7 +95,7 @@ function renderParents(data) {
   const siswaBadge = (students) => {
     if (!students.length) return `<span style="color:var(--grey-400);font-size:12px">-</span>`;
     return students.map(s =>
-      `<span style="font-size:12px;background:var(--blue-50);color:var(--blue-700);padding:2px 8px;border-radius:99px;white-space:nowrap">${s.name}${s.classes?.name ? ` · ${s.classes.name}` : ""}</span>`
+      `<span style="font-size:12px;background:var(--blue-mid);color:#1d4ed8;padding:2px 8px;border-radius:99px;white-space:nowrap">${s.name}${s.classes?.name ? ` · ${s.classes.name}` : ""}</span>`
     ).join(" ");
   };
 
@@ -107,12 +123,15 @@ function renderParents(data) {
   cardList.innerHTML = data.map(p => `
     <div class="card-list-item">
       <div class="cli-name">${p.name}</div>
-      <div class="cli-meta">
-        ${p.whatsapp ? `<span>${p.whatsapp}</span>` : ""}
+      <div class="cli-meta" style="flex-direction:column;gap:3px">
+        ${p.whatsapp ? `<span style="color:var(--grey-700);font-weight:500">${p.whatsapp}</span>` : `<span style="color:var(--grey-400)">Belum ada no. WA</span>`}
         ${p.email ? `<span>${p.email}</span>` : ""}
       </div>
-      ${p.students.length ? `<div style="display:flex;flex-wrap:wrap;gap:4px;margin:6px 0 2px">${siswaBadge(p.students)}</div>` : ""}
-      <div class="cli-footer" style="margin-top:8px">
+      ${p.students.length ? `
+        <div style="display:flex;flex-wrap:wrap;gap:4px;margin:8px 0 4px">
+          ${siswaBadge(p.students)}
+        </div>` : `<div style="font-size:12px;color:var(--grey-400);margin:4px 0 6px">Belum ada siswa terhubung</div>`}
+      <div class="cli-footer">
         <div></div>
         <div style="display:flex;gap:6px">
           <button class="btn btn-ghost btn-sm" data-edit="${p.id}">Edit</button>
