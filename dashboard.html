@@ -6,23 +6,32 @@
 <title>Dashboard — SFMS Lite</title>
 <link rel="stylesheet" href="css/style.css" />
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 </head>
 <body>
   <div class="app-shell">
     <aside class="sidebar" id="sidebar">
-      <div class="brand">SFMS Lite<small data-school-name>Memuat...</small></div>
+      <div class="brand">
+        <div class="brand-icon">🏫</div>
+        <div class="brand-text">
+          SFMS Lite
+          <small data-school-name>Memuat...</small>
+        </div>
+      </div>
       <nav>
-        <a href="dashboard.html" class="active">Dashboard</a>
-        <a href="siswa.html">Data Siswa</a>
-        <a href="orangtua.html">Data Orang Tua</a>
-        <a href="jenis-tagihan.html">Jenis Tagihan</a>
-        <a href="tagihan.html">Tagihan</a>
-        <a href="pembayaran.html">Pembayaran</a>
-        <a href="template.html">Template WA</a>
-        <a href="laporan.html">Laporan</a>
-        <a href="users.html" data-roles="kepala_sekolah,super_admin">Manajemen User</a>
-        <a href="audit-log.html" data-roles="kepala_sekolah,super_admin">Audit Log</a>
+        <div class="nav-section">Menu Utama</div>
+        <a href="dashboard.html" class="active"><span class="nav-icon">📊</span> Dashboard</a>
+        <a href="siswa.html"><span class="nav-icon">👨‍🎓</span> Data Siswa</a>
+        <a href="orangtua.html"><span class="nav-icon">👨‍👩‍👦</span> Data Orang Tua</a>
+        <div class="nav-section">Keuangan</div>
+        <a href="jenis-tagihan.html"><span class="nav-icon">📋</span> Jenis Tagihan</a>
+        <a href="tagihan.html"><span class="nav-icon">🧾</span> Tagihan</a>
+        <a href="pembayaran.html"><span class="nav-icon">💳</span> Pembayaran</a>
+        <div class="nav-section">Pengaturan</div>
+        <a href="template.html"><span class="nav-icon">💬</span> Template WA</a>
+        <a href="laporan.html"><span class="nav-icon">📈</span> Laporan</a>
+        <a href="users.html" data-roles="kepala_sekolah"><span class="nav-icon">👥</span> Manajemen User</a>
+        <a href="audit-log.html" data-roles="kepala_sekolah"><span class="nav-icon">🔍</span> Audit Log</a>
       </nav>
       <div class="user-box">
         <div data-user-name>...</div>
@@ -32,23 +41,38 @@
     </aside>
 
     <main class="main">
-      <div class="topbar"><h1>Dashboard</h1></div>
+      <div class="topbar">
+        <h1>Dashboard</h1>
+      </div>
       <div class="content">
-        <div class="cards" id="statCards">
-          <div class="card"><div class="label">Total Tagihan</div><div class="value">...</div></div>
-          <div class="card"><div class="label">Total Pembayaran</div><div class="value">...</div></div>
-          <div class="card"><div class="label">Total Tunggakan</div><div class="value">...</div></div>
-          <div class="card"><div class="label">Persentase Pelunasan</div><div class="value">...</div></div>
+        <!-- Summary Cards -->
+        <div class="cards" id="summaryCards">
+          <div class="card"><div class="skeleton skeleton-card"></div></div>
+          <div class="card"><div class="skeleton skeleton-card"></div></div>
+          <div class="card"><div class="skeleton skeleton-card"></div></div>
+          <div class="card"><div class="skeleton skeleton-card"></div></div>
         </div>
 
+        <!-- Tagihan Belum Lunas -->
+        <div class="panel" style="margin-bottom:20px">
+          <div class="panel-head">
+            <h2>⏳ Tagihan Belum Lunas</h2>
+            <a href="tagihan.html" class="btn btn-ghost btn-sm">Lihat Semua</a>
+          </div>
+          <div class="panel-body" id="recentBillsWrap">Memuat...</div>
+        </div>
+
+        <!-- Pembayaran Terbaru -->
         <div class="panel">
-          <div class="panel-head"><h2>Tunggakan Terbesar</h2></div>
-          <div class="panel-body" id="topDebtors">Memuat...</div>
+          <div class="panel-head">
+            <h2>💳 Pembayaran Terbaru</h2>
+            <a href="pembayaran.html" class="btn btn-ghost btn-sm">Lihat Semua</a>
+          </div>
+          <div class="panel-body" id="recentPaymentsWrap">Memuat...</div>
         </div>
       </div>
     </main>
   </div>
-
   <script type="module" src="js/dashboard.js"></script>
 </body>
 </html>
