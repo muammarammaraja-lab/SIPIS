@@ -1,11 +1,11 @@
 // ============================================================
-// SFMS LITE — Data Orang Tua v3.1
-// CRUD orang tua + tampil siswa yang terhubung
-// Mobile card list + desktop table dual render
+// SFMS LITE — Data Orang Tua v3.2
+// Kolom: whatsapp_number (bukan whatsapp)
+// Relasi siswa via tabel student_parent (junction table)
 // ============================================================
 import { supabase } from "./supabaseClient.js";
 import { requireAuth, applyRoleVisibility } from "./auth.js";
-import { showToast, formatDate, confirmDialog, qs } from "./utils.js";
+import { showToast, confirmDialog, qs } from "./utils.js";
 
 const auth = await requireAuth();
 if (!auth) throw new Error("Unauthenticated");
@@ -20,22 +20,6 @@ const btnAdd    = document.getElementById("btnAdd");
 const modalOv   = document.getElementById("modalOverlay");
 const form      = document.getElementById("parentForm");
 
-// ── Mobile panel-head fix ─────────────────────────────────
-(function injectMobileStyle() {
-  if (document.getElementById("_ot_style")) return;
-  const s = document.createElement("style");
-  s.id = "_ot_style";
-  s.textContent = `
-    @media (max-width: 540px) {
-      .panel-head { flex-wrap: wrap !important; gap: 10px !important; }
-      .panel-head > div { width: 100% !important; display: flex !important; gap: 8px !important; align-items: center !important; }
-      .panel-head > div input[type="text"] { flex: 1 !important; min-width: 0 !important; margin: 0 !important; }
-      .panel-head > div .btn { flex-shrink: 0 !important; white-space: nowrap !important; }
-    }
-  `;
-  document.head.appendChild(s);
-})();
-
 let allParents = [];
 
 // ── Load orang tua ────────────────────────────────────────
@@ -46,36 +30,28 @@ async function loadParents() {
     <div class="skeleton skeleton-row"></div>`;
   cardList.innerHTML = "";
 
-  // Ambil orang tua + siswa yang terhubung via parent_whatsapp
-  const { data: parents, error } = await supabase
-    .from("parents")
-    .select("*")
-    .order("name");
+  // Load parents + relasi siswa via student_parent
+  const [{ data: parents, error }, { data: spLinks }] = await Promise.all([
+    supabase.from("parents").select("*").order("name"),
+    supabase.from("student_parent").select("parent_id, students(id, name, classes(name))"),
+  ]);
 
   if (error) {
     tableWrap.innerHTML = `<div class="empty-state"><div class="empty-title">Gagal memuat</div><div class="empty-desc">${error.message}</div></div>`;
     return;
   }
 
-  // Ambil siswa aktif untuk ditampilkan relasi
-  const { data: students } = await supabase
-    .from("students")
-    .select("id, name, parent_whatsapp, classes(name)")
-    .eq("status", "aktif");
-
-  // Buat map: whatsapp → [siswa]
-  const studentsByWA = {};
-  (students ?? []).forEach(s => {
-    const wa = s.parent_whatsapp;
-    if (!wa) return;
-    if (!studentsByWA[wa]) studentsByWA[wa] = [];
-    studentsByWA[wa].push(s);
+  // Buat map: parent_id → [siswa]
+  const studentsByParent = {};
+  (spLinks ?? []).forEach(link => {
+    if (!link.parent_id) return;
+    if (!studentsByParent[link.parent_id]) studentsByParent[link.parent_id] = [];
+    if (link.students) studentsByParent[link.parent_id].push(link.students);
   });
 
-  // Gabungkan
   allParents = (parents ?? []).map(p => ({
     ...p,
-    students: studentsByWA[p.whatsapp] ?? [],
+    students: studentsByParent[p.id] ?? [],
   }));
 
   renderParents(allParents);
@@ -108,7 +84,7 @@ function renderParents(data) {
       <tbody>
         ${data.map(p => `<tr>
           <td><strong>${p.name}</strong></td>
-          <td>${p.whatsapp ?? "-"}</td>
+          <td>${p.whatsapp_number ?? "-"}</td>
           <td>${p.email ?? "-"}</td>
           <td style="max-width:220px"><div style="display:flex;flex-wrap:wrap;gap:4px">${siswaBadge(p.students)}</div></td>
           <td style="display:flex;gap:6px">
@@ -124,13 +100,14 @@ function renderParents(data) {
     <div class="card-list-item">
       <div class="cli-name">${p.name}</div>
       <div class="cli-meta" style="flex-direction:column;gap:3px">
-        ${p.whatsapp ? `<span style="color:var(--grey-700);font-weight:500">${p.whatsapp}</span>` : `<span style="color:var(--grey-400)">Belum ada no. WA</span>`}
+        ${p.whatsapp_number
+          ? `<span style="color:var(--grey-700);font-weight:500">${p.whatsapp_number}</span>`
+          : `<span style="color:var(--grey-400)">Belum ada no. WA</span>`}
         ${p.email ? `<span>${p.email}</span>` : ""}
       </div>
-      ${p.students.length ? `
-        <div style="display:flex;flex-wrap:wrap;gap:4px;margin:8px 0 4px">
-          ${siswaBadge(p.students)}
-        </div>` : `<div style="font-size:12px;color:var(--grey-400);margin:4px 0 6px">Belum ada siswa terhubung</div>`}
+      ${p.students.length
+        ? `<div style="display:flex;flex-wrap:wrap;gap:4px;margin:8px 0 4px">${siswaBadge(p.students)}</div>`
+        : `<div style="font-size:12px;color:var(--grey-400);margin:4px 0 6px">Belum ada siswa terhubung</div>`}
       <div class="cli-footer">
         <div></div>
         <div style="display:flex;gap:6px">
@@ -158,7 +135,7 @@ searchBox?.addEventListener("input", () => {
     if (!q) { renderParents(allParents); return; }
     renderParents(allParents.filter(p =>
       p.name.toLowerCase().includes(q) ||
-      (p.whatsapp ?? "").includes(q) ||
+      (p.whatsapp_number ?? "").includes(q) ||
       (p.email ?? "").toLowerCase().includes(q)
     ));
   }, 250);
@@ -176,11 +153,11 @@ btnAdd?.addEventListener("click", () => {
 function openEdit(id) {
   const p = allParents.find(x => x.id === id);
   if (!p) return;
-  qs("#modalTitle").textContent  = "Edit Orang Tua";
-  qs("#parentId").value          = p.id;
-  qs("#f_name").value            = p.name ?? "";
-  qs("#f_whatsapp").value        = p.whatsapp ?? "";
-  qs("#f_email").value           = p.email ?? "";
+  qs("#modalTitle").textContent = "Edit Orang Tua";
+  qs("#parentId").value         = p.id;
+  qs("#f_name").value           = p.name ?? "";
+  qs("#f_whatsapp").value       = p.whatsapp_number ?? "";
+  qs("#f_email").value          = p.email ?? "";
   modalOv.style.display = "flex";
 }
 
@@ -188,27 +165,27 @@ function openEdit(id) {
 form?.addEventListener("submit", async (e) => {
   e.preventDefault();
 
-  const id       = qs("#parentId").value;
-  const name     = qs("#f_name").value.trim();
-  const whatsapp = qs("#f_whatsapp").value.trim() || null;
-  const email    = qs("#f_email").value.trim() || null;
+  const id              = qs("#parentId").value;
+  const name            = qs("#f_name").value.trim();
+  const whatsapp_number = qs("#f_whatsapp").value.trim() || null;
+  const email           = qs("#f_email").value.trim() || null;
 
   if (!name) { showToast("Nama wajib diisi.", "error"); return; }
 
-  const payload = { name, whatsapp, email };
+  const payload = { name, whatsapp_number, email };
 
   let error;
   if (id) {
     ({ error } = await supabase.from("parents").update(payload).eq("id", id));
 
     // Sinkronisasi balik ke students yang punya WA sama
-    if (!error && whatsapp) {
+    if (!error && whatsapp_number) {
       await supabase.from("students")
-        .update({ parent_name: name, parent_whatsapp: whatsapp, parent_email: email })
-        .eq("parent_whatsapp", whatsapp);
+        .update({ parent_name: name, parent_whatsapp: whatsapp_number, parent_email: email })
+        .eq("parent_whatsapp", whatsapp_number);
     }
   } else {
-    ({ error } = await supabase.from("parents").insert(payload));
+    ({ error } = await supabase.from("parents").insert({ ...payload, school_id: auth.profile.school_id }));
   }
 
   if (error) { showToast("Gagal menyimpan: " + error.message, "error"); return; }
@@ -227,6 +204,8 @@ async function deleteParent(id) {
   );
   if (!ok) return;
 
+  // Hapus link di student_parent dulu
+  await supabase.from("student_parent").delete().eq("parent_id", id);
   const { error } = await supabase.from("parents").delete().eq("id", id);
   if (error) { showToast("Gagal menghapus: " + error.message, "error"); return; }
   showToast("Data orang tua dihapus.", "success");

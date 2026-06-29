@@ -216,12 +216,12 @@ async function syncParent({ parent_name, parent_whatsapp, parent_email }) {
   const { data: existing } = await supabase
     .from("parents")
     .select("id")
-    .eq("whatsapp", parent_whatsapp)
+    .eq("whatsapp_number", parent_whatsapp)
     .maybeSingle();
 
   const parentPayload = {
     name:      parent_name || "Orang Tua",
-    whatsapp:  parent_whatsapp,
+    whatsapp_number: parent_whatsapp,
     email:     parent_email || null,
   };
 
