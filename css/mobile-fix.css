@@ -1,0 +1,61 @@
+/* ============================================================
+   SIPIS — Mobile Fix v1.0
+   Tambahkan di setiap HTML: <link rel="stylesheet" href="css/mobile-fix.css" />
+   tepat setelah style.css
+   ============================================================ */
+
+/* Panel-head wrap di mobile — search + button tidak terpotong */
+@media (max-width: 560px) {
+  .panel-head {
+    flex-wrap: wrap !important;
+    gap: 10px !important;
+    padding: 12px 14px !important;
+  }
+
+  .panel-head > div:not(:first-child),
+  .panel-head > div[style*="display:flex"],
+  .panel-head > div[style*="display: flex"] {
+    width: 100% !important;
+    flex-wrap: nowrap !important;
+  }
+
+  .panel-head input[type="text"],
+  .panel-head input[type="search"] {
+    flex: 1 !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+    width: auto !important;
+  }
+
+  .panel-head select {
+    flex: 1 !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+    width: auto !important;
+  }
+
+  .panel-head .btn {
+    flex-shrink: 0 !important;
+    white-space: nowrap !important;
+  }
+}
+
+/* Card-list item — nama tidak overflow */
+@media (max-width: 560px) {
+  .card-list-item { overflow: hidden; }
+  .cli-name {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+}
+
+/* Table/card-list responsive toggle */
+@media (max-width: 640px) {
+  .table-desktop { display: none !important; }
+  .card-list     { display: block !important; }
+}
+@media (min-width: 641px) {
+  .table-desktop { display: block !important; }
+  .card-list     { display: none !important; }
+}
