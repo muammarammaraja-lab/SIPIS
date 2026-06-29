@@ -1,138 +1,211 @@
 // ============================================================
-// SFMS LITE — Laporan PDF (ringkasan per kelas, detail, tunggakan)
-// Menggunakan jsPDF + jspdf-autotable yang di-load dari CDN,
-// dirender sepenuhnya di browser (tidak butuh server tambahan).
+// SFMS LITE — Laporan Keuangan Handler
 // ============================================================
-
 import { supabase } from "./supabaseClient.js";
 import { requireAuth, applyRoleVisibility } from "./auth.js";
-import { showToast, formatRupiah, formatDate } from "./utils.js";
 
-const auth = await requireAuth();
-let schoolName = "Sekolah";
+const { session, profile } = await requireAuth();
+applyRoleVisibility(profile.role);
 
-if (auth) {
-  applyRoleVisibility(auth.profile);
-  schoolName = auth.profile.schools?.name ?? "Sekolah";
-  loadPreview();
-}
+// School name & user info
+const { data: schoolData } = await supabase.from("settings").select("value").eq("key","school_name").single();
+document.querySelectorAll("[data-school-name]").forEach(el => el.textContent = schoolData?.value ?? "SFMS Lite");
+document.querySelectorAll("[data-user-name]").forEach(el => el.textContent = profile.full_name ?? profile.email);
+document.querySelectorAll("[data-user-role]").forEach(el => el.textContent = profile.role ?? "");
+document.querySelectorAll("[data-logout]").forEach(btn => btn.addEventListener("click", async () => {
+  await supabase.auth.signOut(); window.location.href = "index.html";
+}));
 
-document.getElementById("btnGenerate").addEventListener("click", generatePdf);
+// ── Elements ──────────────────────────────────────────────
+const cardsEl      = document.getElementById("laporanCards");
+const tableWrap    = document.getElementById("laporanTableWrap");
+const cardList     = document.getElementById("laporanCardList");
+const filterMonth  = document.getElementById("filterMonth");
+const btnExport    = document.getElementById("btnExport");
 
-async function fetchBills(period) {
-  let query = supabase
-    .from("bills")
-    .select("amount, amount_paid, period, due_date, status, students(name, classes(name)), billing_types(name)");
-  if (period) query = query.eq("period", period);
-  const { data, error } = await query;
-  if (error) throw error;
-  return data || [];
-}
+// ── Helpers ───────────────────────────────────────────────
+const rp      = v => "Rp" + Number(v||0).toLocaleString("id-ID");
+const fmtDate = s => s ? new Date(s).toLocaleDateString("id-ID",{day:"2-digit",month:"short",year:"numeric"}) : "-";
 
-function aggregateByClass(bills) {
-  const map = {};
-  bills.forEach(b => {
-    const kelas = b.students?.classes?.name ?? "Tanpa Kelas";
-    if (!map[kelas]) map[kelas] = { kelas, jumlahSiswa: new Set(), totalTagihan: 0, totalTerbayar: 0 };
-    map[kelas].jumlahSiswa.add(b.students?.name);
-    map[kelas].totalTagihan += Number(b.amount);
-    map[kelas].totalTerbayar += Number(b.amount_paid || 0);
-  });
-  return Object.values(map).map(r => ({
-    kelas: r.kelas,
-    jumlahSiswa: r.jumlahSiswa.size,
-    totalTagihan: r.totalTagihan,
-    totalTerbayar: r.totalTerbayar,
-    totalTunggakan: r.totalTagihan - r.totalTerbayar,
-  }));
-}
+// Set default bulan ke bulan ini
+const now = new Date();
+filterMonth.value = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,"0")}`;
 
-async function loadPreview() {
-  const wrap = document.getElementById("previewWrap");
-  try {
-    const bills = await fetchBills(null);
-    const rows = aggregateByClass(bills);
-    if (rows.length === 0) {
-      wrap.innerHTML = `<div class="empty-state">Belum ada data tagihan.</div>`;
-      return;
-    }
-    wrap.innerHTML = `
-      <table>
-        <thead><tr><th>Kelas</th><th>Jumlah Siswa</th><th>Total Tagihan</th><th>Total Terbayar</th><th>Total Tunggakan</th></tr></thead>
-        <tbody>
-          ${rows.map(r => `
-            <tr>
-              <td>${r.kelas}</td><td>${r.jumlahSiswa}</td>
-              <td>${formatRupiah(r.totalTagihan)}</td><td>${formatRupiah(r.totalTerbayar)}</td><td>${formatRupiah(r.totalTunggakan)}</td>
-            </tr>`).join("")}
-        </tbody>
-      </table>`;
-  } catch (err) {
-    wrap.innerHTML = `<div class="empty-state">${err.message}</div>`;
+// ── Load summary cards ────────────────────────────────────
+async function loadCards(monthVal) {
+  cardsEl.innerHTML = `
+    <div class="skeleton skeleton-card"></div>
+    <div class="skeleton skeleton-card"></div>
+    <div class="skeleton skeleton-card"></div>`;
+
+  let q = supabase.from("payments").select("amount, status, created_at").eq("status","diterima");
+  if (monthVal) {
+    const [y, m] = monthVal.split("-");
+    const from = `${y}-${m}-01`;
+    const toDate = new Date(y, m, 0);
+    const to = `${y}-${m}-${String(toDate.getDate()).padStart(2,"0")}T23:59:59`;
+    q = q.gte("created_at", from).lte("created_at", to);
   }
+  const { data: paid } = await q;
+
+  const totalMasuk = (paid ?? []).reduce((s, p) => s + Number(p.amount), 0);
+  const jmlTransaksi = (paid ?? []).length;
+
+  // Tagihan belum lunas (tidak filter bulan — global)
+  const { count: belumLunas } = await supabase
+    .from("bills").select("id", { count: "exact", head: true }).neq("status","lunas");
+
+  cardsEl.innerHTML = `
+    <div class="card-stat">
+      <div class="card-stat-icon" style="color:var(--green)">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+      </div>
+      <div class="card-stat-label">Total Terkumpul${monthVal ? " (bulan ini)" : ""}</div>
+      <div class="card-stat-value">${rp(totalMasuk)}</div>
+    </div>
+    <div class="card-stat">
+      <div class="card-stat-icon" style="color:var(--blue)">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>
+      </div>
+      <div class="card-stat-label">Transaksi Diterima${monthVal ? " (bulan ini)" : ""}</div>
+      <div class="card-stat-value">${jmlTransaksi}</div>
+    </div>
+    <div class="card-stat">
+      <div class="card-stat-icon" style="color:var(--orange)">
+        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      </div>
+      <div class="card-stat-label">Tagihan Belum Lunas</div>
+      <div class="card-stat-value">${belumLunas ?? 0}</div>
+    </div>`;
 }
 
-async function generatePdf() {
-  const statusText = document.getElementById("statusText");
-  const reportType = document.getElementById("reportType").value;
-  const period = document.getElementById("reportPeriod").value.trim() || null;
+// ── Load tabel laporan ────────────────────────────────────
+async function loadTable(monthVal) {
+  tableWrap.innerHTML = '<div class="skeleton" style="height:200px"></div>';
+  cardList.innerHTML  = "";
 
-  statusText.textContent = "Menyiapkan PDF...";
+  let q = supabase
+    .from("payments")
+    .select(`id, amount, method, status, created_at,
+             bills(period, students(full_name, kelas), fee_types(name))`)
+    .eq("status","diterima")
+    .order("created_at", { ascending: false });
 
-  try {
-    const [{ jsPDF }, { default: autoTable }] = await Promise.all([
-      import("https://esm.sh/jspdf@2.5.2"),
-      import("https://esm.sh/jspdf-autotable@3.8.4?deps=jspdf@2.5.2"),
+  if (monthVal) {
+    const [y, m] = monthVal.split("-");
+    const from = `${y}-${m}-01`;
+    const toDate = new Date(y, m, 0);
+    const to = `${y}-${m}-${String(toDate.getDate()).padStart(2,"0")}T23:59:59`;
+    q = q.gte("created_at", from).lte("created_at", to);
+  }
+
+  const { data, error } = await q;
+  if (error) {
+    tableWrap.innerHTML = `<p style="color:var(--red)">Error: ${error.message}</p>`;
+    return;
+  }
+
+  if (!data?.length) {
+    tableWrap.innerHTML = '<p style="padding:24px;color:var(--neutral-500)">Tidak ada data untuk periode ini.</p>';
+    cardList.innerHTML  = '<p style="padding:24px;color:var(--neutral-500)">Tidak ada data untuk periode ini.</p>';
+    return;
+  }
+
+  // Table (desktop)
+  const rows = data.map(p => {
+    const b = p.bills ?? {};
+    return `<tr>
+      <td>${fmtDate(p.created_at)}</td>
+      <td>${b.students?.full_name ?? "-"}</td>
+      <td>${b.students?.kelas ?? "-"}</td>
+      <td>${b.fee_types?.name ?? "-"}</td>
+      <td>${b.period ?? "-"}</td>
+      <td>${rp(p.amount)}</td>
+      <td>${p.method ?? "-"}</td>
+    </tr>`;
+  }).join("");
+
+  const total = data.reduce((s, p) => s + Number(p.amount), 0);
+
+  tableWrap.innerHTML = `
+    <table>
+      <thead><tr>
+        <th>Tanggal</th><th>Siswa</th><th>Kelas</th>
+        <th>Jenis</th><th>Periode</th><th>Jumlah</th><th>Metode</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+      <tfoot><tr>
+        <td colspan="5" style="text-align:right;font-weight:600;padding:10px 12px">Total</td>
+        <td style="font-weight:700;padding:10px 12px">${rp(total)}</td>
+        <td></td>
+      </tr></tfoot>
+    </table>`;
+
+  // Cards (mobile)
+  cardList.innerHTML = data.map(p => {
+    const b = p.bills ?? {};
+    return `<div class="card-item">
+      <div class="card-item-header">
+        <strong>${b.students?.full_name ?? "-"}</strong>
+        <span class="badge badge-success">Diterima</span>
+      </div>
+      <div class="card-item-meta">${b.fee_types?.name ?? "-"} — ${b.period ?? "-"} · ${b.students?.kelas ?? "-"}</div>
+      <div class="card-item-footer">
+        <span class="card-item-amount">${rp(p.amount)}</span>
+        <span style="color:var(--neutral-500);font-size:13px">${fmtDate(p.created_at)}</span>
+      </div>
+    </div>`;
+  }).join("");
+}
+
+// ── Export CSV ────────────────────────────────────────────
+btnExport?.addEventListener("click", async () => {
+  const monthVal = filterMonth.value;
+  let q = supabase
+    .from("payments")
+    .select(`amount, method, created_at,
+             bills(period, students(full_name, kelas), fee_types(name))`)
+    .eq("status","diterima")
+    .order("created_at", { ascending: false });
+
+  if (monthVal) {
+    const [y, m] = monthVal.split("-");
+    const from = `${y}-${m}-01`;
+    const toDate = new Date(y, m, 0);
+    const to = `${y}-${m}-${String(toDate.getDate()).padStart(2,"0")}T23:59:59`;
+    q = q.gte("created_at", from).lte("created_at", to);
+  }
+
+  const { data } = await q;
+  const rows = [["Tanggal","Siswa","Kelas","Jenis Tagihan","Periode","Jumlah","Metode"]];
+  (data ?? []).forEach(p => {
+    const b = p.bills ?? {};
+    rows.push([
+      fmtDate(p.created_at),
+      b.students?.full_name ?? "",
+      b.students?.kelas ?? "",
+      b.fee_types?.name ?? "",
+      b.period ?? "",
+      p.amount,
+      p.method ?? ""
     ]);
+  });
 
-    const bills = await fetchBills(period);
-    const doc = new jsPDF();
-    const today = new Date().toLocaleDateString("id-ID", { day: "2-digit", month: "long", year: "numeric" });
+  const csv = rows.map(r => r.map(c => `"${String(c).replace(/"/g,'""')}"`).join(",")).join("\n");
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
+  a.download = `laporan_${monthVal || "semua"}.csv`;
+  a.click();
+});
 
-    doc.setFontSize(14);
-    doc.text(schoolName, 14, 18);
-    doc.setFontSize(10);
-    doc.setTextColor(100);
+// ── Filter bulan ──────────────────────────────────────────
+filterMonth?.addEventListener("change", () => {
+  const v = filterMonth.value;
+  loadCards(v);
+  loadTable(v);
+});
 
-    let head, body, title;
-
-    if (reportType === "ringkasan") {
-      title = "Laporan Ringkasan Keuangan per Kelas";
-      const rows = aggregateByClass(bills);
-      head = [["Kelas", "Jumlah Siswa", "Total Tagihan", "Total Terbayar", "Total Tunggakan"]];
-      body = rows.map(r => [r.kelas, r.jumlahSiswa, formatRupiah(r.totalTagihan), formatRupiah(r.totalTerbayar), formatRupiah(r.totalTunggakan)]);
-    } else if (reportType === "tunggakan") {
-      title = "Laporan Daftar Tunggakan";
-      const filtered = bills.filter(b => !["lunas", "dibatalkan"].includes(b.status));
-      head = [["Siswa", "Kelas", "Sisa Tagihan", "Jatuh Tempo", "Status"]];
-      body = filtered.map(b => [
-        b.students?.name ?? "-", b.students?.classes?.name ?? "-",
-        formatRupiah(Number(b.amount) - Number(b.amount_paid || 0)), formatDate(b.due_date), b.status,
-      ]);
-    } else {
-      title = "Laporan Detail Seluruh Tagihan";
-      head = [["Siswa", "Kelas", "Jenis", "Periode", "Nominal", "Terbayar", "Status"]];
-      body = bills.map(b => [
-        b.students?.name ?? "-", b.students?.classes?.name ?? "-", b.billing_types?.name ?? "-",
-        b.period ?? "-", formatRupiah(b.amount), formatRupiah(b.amount_paid), b.status,
-      ]);
-    }
-
-    doc.text(`${title}${period ? " — Periode " + period : ""}`, 14, 25);
-    doc.text(`Dicetak: ${today}`, 14, 30);
-
-    autoTable(doc, {
-      head, body, startY: 36,
-      styles: { fontSize: 8 },
-      headStyles: { fillColor: [31, 56, 100] },
-      alternateRowStyles: { fillColor: [244, 246, 248] },
-    });
-
-    doc.save(`laporan_${reportType}_${new Date().toISOString().slice(0, 10)}.pdf`);
-    statusText.textContent = "PDF berhasil dibuat dan diunduh.";
-  } catch (err) {
-    console.error(err);
-    statusText.textContent = "Gagal membuat PDF: " + err.message;
-    showToast("Gagal membuat PDF: " + err.message, "error");
-  }
-}
+// ── Init ──────────────────────────────────────────────────
+const initMonth = filterMonth.value;
+loadCards(initMonth);
+loadTable(initMonth);
