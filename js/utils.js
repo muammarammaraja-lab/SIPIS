@@ -1,82 +1,140 @@
 // ============================================================
-// SFMS LITE — Utility helpers
+// SFMS LITE — Utils v2.0
+// showToast, formatRupiah, formatDate, statusBadge, exportCSV,
+// skeleton loader, confirm dialog
 // ============================================================
 
-export function formatRupiah(value) {
-  const num = Number(value || 0);
-  return "Rp" + num.toLocaleString("id-ID");
+// ---------- Toast ----------
+let toastContainer = null;
+
+function getToastContainer() {
+  if (!toastContainer) {
+    toastContainer = document.createElement("div");
+    toastContainer.id = "toast-container";
+    document.body.appendChild(toastContainer);
+  }
+  return toastContainer;
 }
 
-export function formatDate(dateStr) {
-  if (!dateStr) return "-";
-  const d = new Date(dateStr);
-  return d.toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" });
+export function showToast(message, type = "info", duration = 3500) {
+  const container = getToastContainer();
+  const icons = { success: "✓", error: "✕", info: "ℹ" };
+
+  const toast = document.createElement("div");
+  toast.className = `toast toast-${type}`;
+  toast.innerHTML = `
+    <span class="toast-icon">${icons[type] ?? icons.info}</span>
+    <span class="toast-msg">${message}</span>
+  `;
+  container.appendChild(toast);
+
+  const remove = () => {
+    toast.classList.add("toast-out");
+    toast.addEventListener("animationend", () => toast.remove(), { once: true });
+  };
+
+  const timer = setTimeout(remove, duration);
+  toast.addEventListener("click", () => { clearTimeout(timer); remove(); });
 }
 
+// ---------- Skeleton loader ----------
+export function showSkeleton(wrap, rows = 5) {
+  wrap.innerHTML = Array.from({ length: rows })
+    .map(() => `<div class="skeleton skeleton-row"></div>`)
+    .join("");
+}
+
+// ---------- Format ----------
+export function formatRupiah(n) {
+  const num = Number(n) || 0;
+  return "Rp" + Math.round(num).toLocaleString("id-ID");
+}
+
+export function formatDate(d) {
+  if (!d) return "-";
+  return new Date(d).toLocaleDateString("id-ID", {
+    day: "2-digit", month: "short", year: "numeric"
+  });
+}
+
+// ---------- Status badge ----------
 export function statusBadge(status) {
   const map = {
-    draft: "Draft", aktif: "Aktif", ditagihkan: "Ditagihkan",
-    sebagian_bayar: "Sebagian Bayar", lunas: "Lunas", menunggak: "Menunggak",
-    dispensasi: "Dispensasi", dibatalkan: "Dibatalkan",
-    menunggu_verifikasi: "Menunggu Verifikasi", diterima: "Diterima", ditolak: "Ditolak",
+    lunas:               "lunas",
+    aktif:               "aktif",
+    menunggak:           "menunggak",
+    sebagian_bayar:      "sebagian_bayar",
+    dibatalkan:          "dibatalkan",
+    dispensasi:          "dispensasi",
+    diterima:            "diterima",
+    ditolak:             "ditolak",
+    menunggu_verifikasi: "menunggu_verifikasi",
   };
-  const cls = {
-    draft: "draft", aktif: "aktif", ditagihkan: "ditagihkan",
-    sebagian_bayar: "sebagian", lunas: "lunas", menunggak: "menunggak",
-    dispensasi: "dispensasi", dibatalkan: "dibatalkan",
-    menunggu_verifikasi: "sebagian", diterima: "lunas", ditolak: "menunggak",
+  const labels = {
+    lunas:               "Lunas",
+    aktif:               "Aktif",
+    menunggak:           "Menunggak",
+    sebagian_bayar:      "Sebagian",
+    dibatalkan:          "Dibatalkan",
+    dispensasi:          "Dispensasi",
+    diterima:            "Diterima",
+    ditolak:             "Ditolak",
+    menunggu_verifikasi: "Menunggu",
   };
-  const label = map[status] || status;
-  const className = cls[status] || "draft";
-  return `<span class="badge badge-${className}">${label}</span>`;
+  const cls = map[status] ?? "aktif";
+  const label = labels[status] ?? status;
+  return `<span class="badge badge-${cls}">${label}</span>`;
 }
 
-export function showToast(message, type = "info") {
-  let el = document.getElementById("toast");
-  if (!el) {
-    el = document.createElement("div");
-    el.id = "toast";
-    el.style.position = "fixed";
-    el.style.bottom = "20px";
-    el.style.right = "20px";
-    el.style.padding = "12px 18px";
-    el.style.borderRadius = "8px";
-    el.style.fontSize = "13.5px";
-    el.style.fontWeight = "600";
-    el.style.zIndex = "999";
-    el.style.boxShadow = "0 6px 20px rgba(0,0,0,0.15)";
-    document.body.appendChild(el);
-  }
-  el.textContent = message;
-  el.style.background = type === "error" ? "#b3261e" : type === "success" ? "#1e7a4d" : "#1f3864";
-  el.style.color = "#fff";
-  el.style.display = "block";
-  clearTimeout(el._t);
-  el._t = setTimeout(() => (el.style.display = "none"), 3000);
-}
-
+// ---------- Export CSV ----------
 export function exportCSV(filename, headers, rows) {
-  const escape = (val) => {
-    const s = String(val ?? "");
-    return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  const BOM = "\uFEFF";
+  const escape = (v) => {
+    const s = String(v ?? "");
+    return s.includes(",") || s.includes('"') || s.includes("\n")
+      ? `"${s.replace(/"/g, '""')}"` : s;
   };
-  const lines = [headers.map(escape).join(",")];
-  rows.forEach(r => lines.push(r.map(escape).join(",")));
-  const csv = "\uFEFF" + lines.join("\n"); // BOM agar Excel baca UTF-8 dengan benar
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const lines = [headers, ...rows].map(r => r.map(escape).join(",")).join("\r\n");
+  const blob = new Blob([BOM + lines], { type: "text/csv;charset=utf-8;" });
   const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = filename;
+  const a = Object.assign(document.createElement("a"), { href: url, download: filename });
   document.body.appendChild(a);
   a.click();
-  document.body.removeChild(a);
+  a.remove();
   URL.revokeObjectURL(url);
 }
 
-export function qs(selector, parent = document) {
-  return parent.querySelector(selector);
+// ---------- Confirm dialog ----------
+export function confirm(message) {
+  return new Promise(resolve => {
+    const overlay = document.createElement("div");
+    overlay.className = "modal-overlay";
+    overlay.style.display = "flex";
+    overlay.innerHTML = `
+      <div class="modal-box" style="max-width:360px">
+        <div class="modal-header">
+          <h2>Konfirmasi</h2>
+        </div>
+        <p style="margin:0 0 20px;color:var(--grey-700);font-size:13.5px">${message}</p>
+        <div class="modal-footer">
+          <button class="btn btn-ghost" id="confirmNo">Batal</button>
+          <button class="btn btn-danger" id="confirmYes">Ya, Lanjutkan</button>
+        </div>
+      </div>
+    `;
+    document.body.appendChild(overlay);
+    overlay.querySelector("#confirmYes").onclick = () => { overlay.remove(); resolve(true); };
+    overlay.querySelector("#confirmNo").onclick  = () => { overlay.remove(); resolve(false); };
+  });
 }
-export function qsa(selector, parent = document) {
-  return Array.from(parent.querySelectorAll(selector));
+
+// ---------- Query selector shortcut ----------
+export const qs = (sel, ctx = document) => ctx.querySelector(sel);
+
+// ---------- Format angka singkat ----------
+export function formatAngka(n) {
+  const num = Number(n) || 0;
+  if (num >= 1_000_000) return (num / 1_000_000).toFixed(1) + " jt";
+  if (num >= 1_000)     return (num / 1_000).toFixed(0) + " rb";
+  return num.toString();
 }
