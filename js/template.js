@@ -1,66 +1,131 @@
 // ============================================================
-// SFMS LITE — Template Pesan WA (friendly/medium/final)
+// SFMS LITE — Template WA v3.1
+// Edit template pesan reminder otomatis Fonnte
 // ============================================================
-
 import { supabase } from "./supabaseClient.js";
 import { requireAuth, applyRoleVisibility } from "./auth.js";
-import { showToast } from "./utils.js";
+import { showToast, qs } from "./utils.js";
 
 const auth = await requireAuth();
-let mySchoolId = null;
+if (!auth) throw new Error("Unauthenticated");
+const { profile } = auth;
+applyRoleVisibility(profile);
 
-const TYPES = [
-  { key: "friendly", label: "Friendly Reminder (Tanggal 1)", defaultBody:
-    "Mengingatkan dengan baik, Bapak/Ibu Orang Tua/Wali.\n\nBerikut tagihan {{nama_siswa}} ({{kelas}}) bulan {{bulan}}:\nNominal: {{nominal}}\nJatuh tempo: {{jatuh_tempo}}\n\nSilakan lakukan pembayaran melalui: {{link_pembayaran}}\n\nTerima kasih." },
-  { key: "medium", label: "Medium Reminder (Tanggal 5)", defaultBody:
-    "Mohon perhatian, Bapak/Ibu Orang Tua/Wali.\n\nTagihan {{nama_siswa}} ({{kelas}}) bulan {{bulan}} sebesar {{nominal}} belum kami terima, sudah melewati jatuh tempo {{jatuh_tempo}}.\n\nSilakan lakukan pembayaran melalui: {{link_pembayaran}}\n\nTerima kasih." },
-  { key: "final", label: "Final Reminder (Tanggal 10)", defaultBody:
-    "Pemberitahuan penting (terakhir), Bapak/Ibu Orang Tua/Wali.\n\nTagihan {{nama_siswa}} ({{kelas}}) bulan {{bulan}} sebesar {{nominal}} masih belum terbayar. Mohon segera diselesaikan untuk menghindari tindak lanjut dari pihak sekolah.\n\nBayar melalui: {{link_pembayaran}}\n\nTerima kasih." },
+// ── Elements ──────────────────────────────────────────────
+const panelsEl = document.getElementById("templatePanels");
+const modalOv  = document.getElementById("modalOverlay");
+const form     = document.getElementById("templateForm");
+
+// Tipe-tipe reminder yang ada
+const REMINDER_TYPES = [
+  { key: "reminder_1",  label: "Reminder Tanggal 1" },
+  { key: "reminder_5",  label: "Reminder Tanggal 5" },
+  { key: "reminder_10", label: "Reminder Tanggal 10" },
 ];
 
-if (auth) {
-  applyRoleVisibility(auth.profile);
-  mySchoolId = auth.profile.school_id;
-  render();
+const DEFAULT_BODY = `Assalamu'alaikum Bapak/Ibu {{nama_siswa}},
+
+Kami menginformasikan bahwa terdapat tagihan yang belum diselesaikan:
+
+{{rincian}}
+
+*Total: {{total}}*
+
+Silakan lakukan pembayaran melalui:
+{{link_pembayaran}}
+
+Terima kasih atas perhatiannya.
+_Tim Keuangan Sekolah_`;
+
+let allTemplates = {};
+
+// ── Load templates ────────────────────────────────────────
+async function loadTemplates() {
+  panelsEl.innerHTML = `<div class="panel-body"><div class="skeleton skeleton-row"></div><div class="skeleton skeleton-row"></div></div>`;
+
+  const { data, error } = await supabase
+    .from("wa_templates")
+    .select("*");
+
+  if (error && error.code !== "PGRST116") {
+    panelsEl.innerHTML = `<div class="panel-body"><div class="empty-state"><div class="empty-title">Gagal memuat template</div><div class="empty-desc">${error.message}</div></div></div>`;
+    return;
+  }
+
+  // Map by type
+  allTemplates = {};
+  (data ?? []).forEach(t => { allTemplates[t.type] = t; });
+
+  renderPanels();
 }
 
-async function render() {
-  const { data } = await supabase.from("wa_templates").select("*").eq("school_id", mySchoolId);
-  const byType = {};
-  (data || []).forEach(t => byType[t.reminder_type] = t);
+function renderPanels() {
+  panelsEl.innerHTML = `
+    <div class="panel-head"><h2>Template Pesan</h2></div>
+    <div class="panel-body" style="display:flex;flex-direction:column;gap:16px;padding:16px">
+      ${REMINDER_TYPES.map(rt => {
+        const t = allTemplates[rt.key];
+        const body = t?.body ?? DEFAULT_BODY;
+        const preview = body.replace(/\n/g, "<br>").replace(/\*(.+?)\*/g, "<strong>$1</strong>");
+        return `
+          <div style="border:1px solid var(--grey-200);border-radius:12px;overflow:hidden">
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--grey-50);border-bottom:1px solid var(--grey-200)">
+              <div>
+                <div style="font-weight:500;font-size:14px">${rt.label}</div>
+                <div style="font-size:12px;color:var(--grey-500)">Dikirim otomatis setiap tanggal ${rt.key.split("_")[1]} tiap bulan</div>
+              </div>
+              <button class="btn btn-ghost btn-sm" data-edit-type="${rt.key}" data-edit-label="${rt.label}">Edit</button>
+            </div>
+            <div style="padding:14px 16px;font-size:13px;line-height:1.7;color:var(--grey-700);white-space:pre-line;background:var(--white)">
+              ${preview}
+            </div>
+            ${t ? "" : `<div style="padding:6px 16px 10px;font-size:12px;color:var(--orange)">⚠ Menggunakan template default — belum disimpan ke database</div>`}
+          </div>`;
+      }).join("")}
+    </div>`;
 
-  const container = document.getElementById("templateCards");
-  container.innerHTML = TYPES.map(t => {
-    const existing = byType[t.key];
-    return `
-      <div class="panel" style="margin-bottom:18px">
-        <div class="panel-head"><h2>${t.label}</h2></div>
-        <div class="panel-body">
-          <textarea data-type="${t.key}" rows="6" style="font-family:inherit">${existing ? existing.body : t.defaultBody}</textarea>
-          <div style="display:flex;justify-content:flex-end">
-            <button class="btn btn-primary btn-sm" data-save="${t.key}">Simpan Template</button>
-          </div>
-        </div>
-      </div>`;
-  }).join("");
-
-  container.querySelectorAll("[data-save]").forEach(btn => {
-    btn.addEventListener("click", () => saveTemplate(btn.dataset.save, byType[btn.dataset.save]?.id));
+  // Edit listeners
+  document.querySelectorAll("[data-edit-type]").forEach(btn => {
+    btn.addEventListener("click", () => openEdit(btn.dataset.editType, btn.dataset.editLabel));
   });
 }
 
-async function saveTemplate(type, existingId) {
-  const body = document.querySelector(`textarea[data-type="${type}"]`).value;
-  const payload = { school_id: mySchoolId, reminder_type: type, body, is_active: true };
-
-  const { error } = existingId
-    ? await supabase.from("wa_templates").update(payload).eq("id", existingId)
-    : await supabase.from("wa_templates").insert(payload);
-
-  if (error) {
-    showToast("Gagal menyimpan template: " + error.message, "error");
-    return;
-  }
-  showToast("Template tersimpan.", "success");
-  render();
+// ── Modal edit ────────────────────────────────────────────
+function openEdit(type, label) {
+  const t = allTemplates[type];
+  qs("#templateId").value      = t?.id ?? "";
+  qs("#templateType").value    = type;
+  qs("#f_type_label").value    = label;
+  qs("#f_body").value          = t?.body ?? DEFAULT_BODY;
+  modalOv.style.display = "flex";
 }
+
+form?.addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const id   = qs("#templateId").value;
+  const type = qs("#templateType").value;
+  const body = qs("#f_body").value.trim();
+
+  if (!body) { showToast("Isi pesan tidak boleh kosong.", "error"); return; }
+
+  let error;
+  if (id) {
+    ({ error } = await supabase.from("wa_templates").update({ body }).eq("id", id));
+  } else {
+    ({ error } = await supabase.from("wa_templates").insert({ type, body }));
+  }
+
+  if (error) { showToast("Gagal menyimpan: " + error.message, "error"); return; }
+
+  showToast("Template berhasil disimpan.", "success");
+  closeModal();
+  loadTemplates();
+});
+
+// ── Close modal ───────────────────────────────────────────
+function closeModal() { modalOv.style.display = "none"; }
+document.getElementById("btnCancel")?.addEventListener("click",  closeModal);
+document.getElementById("btnCancel2")?.addEventListener("click", closeModal);
+
+// ── Init ──────────────────────────────────────────────────
+loadTemplates();
