@@ -18,9 +18,9 @@ const form     = document.getElementById("templateForm");
 
 // Tipe-tipe reminder yang ada
 const REMINDER_TYPES = [
-  { key: "reminder_1",  label: "Reminder Tanggal 1" },
-  { key: "reminder_5",  label: "Reminder Tanggal 5" },
-  { key: "reminder_10", label: "Reminder Tanggal 10" },
+  { key: "friendly", label: "Reminder Tanggal 1" },
+  { key: "medium",   label: "Reminder Tanggal 5" },
+  { key: "final",    label: "Reminder Tanggal 10" },
 ];
 
 const DEFAULT_BODY = `Assalamu'alaikum Bapak/Ibu {{nama_siswa}},
@@ -72,7 +72,7 @@ function renderPanels() {
             <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--grey-50);border-bottom:1px solid var(--grey-200)">
               <div>
                 <div style="font-weight:500;font-size:14px">${rt.label}</div>
-                <div style="font-size:12px;color:var(--grey-500)">Dikirim otomatis setiap tanggal ${rt.key.split("_")[1]} tiap bulan</div>
+                <div style="font-size:12px;color:var(--grey-500)">Dikirim otomatis setiap tanggal ${{ friendly:"1", medium:"5", final:"10" }[rt.key]} tiap bulan</div>
               </div>
               <button class="btn btn-ghost btn-sm" data-edit-type="${rt.key}" data-edit-label="${rt.label}">Edit</button>
             </div>
