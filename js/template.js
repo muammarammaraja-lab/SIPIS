@@ -54,7 +54,7 @@ async function loadTemplates() {
 
   // Map by type
   allTemplates = {};
-  (data ?? []).forEach(t => { allTemplates[t.type] = t; });
+  (data ?? []).forEach(t => { allTemplates[t.reminder_type] = t; });
 
   renderPanels();
 }
@@ -112,7 +112,7 @@ form?.addEventListener("submit", async (e) => {
   if (id) {
     ({ error } = await supabase.from("wa_templates").update({ body }).eq("id", id));
   } else {
-    ({ error } = await supabase.from("wa_templates").insert({ type, body }));
+    ({ error } = await supabase.from("wa_templates").insert({ reminder_type: type, body, school_id: profile.school_id, is_active: true }));
   }
 
   if (error) { showToast("Gagal menyimpan: " + error.message, "error"); return; }
