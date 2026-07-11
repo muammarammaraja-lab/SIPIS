@@ -185,7 +185,7 @@ form?.addEventListener("submit", async (e) => {
         .eq("parent_whatsapp", whatsapp_number);
     }
   } else {
-    ({ error } = await supabase.from("parents").insert({ ...payload, school_id: auth.profile.school_id }));
+    ({ error } = await supabase.from("parents").insert({ ...payload, school_id: profile.school_id }));
   }
 
   if (error) { showToast("Gagal menyimpan: " + error.message, "error"); return; }
@@ -216,6 +216,190 @@ async function deleteParent(id) {
 function closeModal() { modalOv.style.display = "none"; }
 document.getElementById("btnCancel")?.addEventListener("click",  closeModal);
 document.getElementById("btnCancel2")?.addEventListener("click", closeModal);
+
+// ============================================================
+// IMPORT CSV — bulk tambah orang tua
+// ============================================================
+const btnImport         = document.getElementById("btnImport");
+const importOv          = document.getElementById("importModalOverlay");
+const importStep1       = document.getElementById("importStep1");
+const importStep2       = document.getElementById("importStep2");
+const csvFileInput      = document.getElementById("csvFileInput");
+const csvFileName       = document.getElementById("csvFileName");
+const btnDownloadTpl    = document.getElementById("btnDownloadTemplate");
+const importPreviewBody = document.getElementById("importPreviewBody");
+const importRowCount    = document.getElementById("importRowCount");
+const importErrors      = document.getElementById("importErrors");
+const btnImportConfirm  = document.getElementById("btnImportConfirm");
+const btnImportCancel   = document.getElementById("btnImportCancel");
+const btnImportClose    = document.getElementById("btnImportClose");
+
+let parsedRows = [];
+
+btnImport?.addEventListener("click", () => {
+  resetImportModal();
+  importOv.style.display = "flex";
+});
+
+function resetImportModal() {
+  importStep1.style.display = "block";
+  importStep2.style.display = "none";
+  btnImportConfirm.style.display = "none";
+  csvFileInput.value = "";
+  csvFileName.textContent = "";
+  importErrors.style.display = "none";
+  importErrors.innerHTML = "";
+  parsedRows = [];
+}
+
+function closeImportModal() { importOv.style.display = "none"; }
+btnImportCancel?.addEventListener("click", closeImportModal);
+btnImportClose?.addEventListener("click",  closeImportModal);
+
+// Download template
+btnDownloadTpl?.addEventListener("click", () => {
+  const headers = ["nama", "whatsapp_number", "email"];
+  const sample  = ["Bapak Ahmad", "+6281234567890", "ahmad@email.com"];
+  const csv = headers.join(",") + "\n" + sample.map(v => `"${v}"`).join(",");
+  const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "template_import_orangtua.csv";
+  a.click();
+  URL.revokeObjectURL(a.href);
+});
+
+// Parse CSV
+function parseCSV(text) {
+  const lines = text.split(/\r?\n/).filter(l => l.trim() !== "");
+  if (!lines.length) return [];
+  const parseLine = (line) => {
+    const result = []; let cur = "", inQuotes = false;
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (ch === '"') { if (inQuotes && line[i+1] === '"') { cur += '"'; i++; } else inQuotes = !inQuotes; }
+      else if (ch === "," && !inQuotes) { result.push(cur); cur = ""; }
+      else cur += ch;
+    }
+    result.push(cur);
+    return result.map(v => v.trim());
+  };
+  const headers = parseLine(lines[0]).map(h => h.toLowerCase());
+  return lines.slice(1).map(line => {
+    const vals = parseLine(line);
+    const row = {};
+    headers.forEach((h, i) => { row[h] = vals[i] ?? ""; });
+    return row;
+  });
+}
+
+// Handle upload
+csvFileInput?.addEventListener("change", async () => {
+  const file = csvFileInput.files[0];
+  if (!file) return;
+  csvFileName.textContent = `File: ${file.name}`;
+  const text = await file.text();
+  const rows = parseCSV(text);
+  if (!rows.length) { showToast("File CSV kosong.", "error"); return; }
+  if (rows.length > 500) { showToast("Maksimal 500 baris.", "error"); return; }
+  validateAndPreview(rows);
+});
+
+function validateAndPreview(rows) {
+  const errors = [];
+  parsedRows = rows.map((r, idx) => {
+    const rowNum = idx + 2;
+    const nama = (r.nama ?? "").trim();
+    const wa   = (r.whatsapp_number ?? r.wa ?? r.whatsapp ?? "").trim();
+    let status = "valid", note = "";
+
+    if (!nama) {
+      status = "error"; note = "Nama kosong";
+      errors.push(`Baris ${rowNum}: nama wajib diisi`);
+    } else if (!wa) {
+      status = "error"; note = "No. WA kosong";
+      errors.push(`Baris ${rowNum}: no. WA wajib diisi`);
+    } else if (!/^\+?\d{9,15}$/.test(wa.replace(/[\s-]/g, ""))) {
+      status = "warning"; note = "Format WA mungkin salah";
+    }
+
+    return {
+      name: nama,
+      whatsapp_number: wa.replace(/[\s-]/g, "") || null,
+      email: (r.email ?? "").trim() || null,
+      _status: status,
+      _note: note,
+    };
+  });
+
+  renderPreview(errors);
+}
+
+function renderPreview(errors) {
+  importStep1.style.display = "none";
+  importStep2.style.display = "block";
+  importRowCount.textContent = parsedRows.length;
+
+  if (errors.length) {
+    importErrors.style.display = "block";
+    importErrors.innerHTML = `<strong>${errors.length} masalah:</strong><br>` +
+      errors.slice(0,10).map(e => `• ${e}`).join("<br>") +
+      (errors.length > 10 ? `<br>... dan ${errors.length-10} lainnya` : "");
+  }
+
+  const sb = (s) => ({
+    valid:   `<span class="badge badge-lunas">Siap</span>`,
+    warning: `<span class="badge badge-aktif">Perlu cek</span>`,
+    error:   `<span class="badge badge-ditolak">Error</span>`,
+  }[s]);
+
+  importPreviewBody.innerHTML = parsedRows.map(r => `
+    <tr>
+      <td style="padding:8px">${r.name || "-"}</td>
+      <td style="padding:8px">${r.whatsapp_number || "-"}</td>
+      <td style="padding:8px">${r.email || "-"}</td>
+      <td style="padding:8px">${sb(r._status)}${r._note ? `<div style="font-size:10px;color:var(--grey-400)">${r._note}</div>` : ""}</td>
+    </tr>`).join("");
+
+  const validCount = parsedRows.filter(r => r._status !== "error").length;
+  if (validCount > 0) {
+    btnImportConfirm.style.display = "inline-flex";
+    btnImportConfirm.textContent = `Simpan ${validCount} Orang Tua`;
+  } else {
+    btnImportConfirm.style.display = "none";
+  }
+}
+
+// Simpan ke Supabase
+btnImportConfirm?.addEventListener("click", async () => {
+  const validRows = parsedRows.filter(r => r._status !== "error");
+  if (!validRows.length) return;
+
+  btnImportConfirm.disabled = true;
+  btnImportConfirm.textContent = "Menyimpan...";
+
+  const payload = validRows.map(r => ({
+    name: r.name,
+    whatsapp_number: r.whatsapp_number,
+    email: r.email,
+    school_id: profile.school_id,
+  }));
+
+  // Upsert by whatsapp_number — skip jika nomor sudah ada
+  const { error } = await supabase.from("parents")
+    .upsert(payload, { onConflict: "whatsapp_number", ignoreDuplicates: true });
+
+  if (error) {
+    showToast("Gagal import: " + error.message, "error");
+    btnImportConfirm.disabled = false;
+    btnImportConfirm.textContent = `Simpan ${validRows.length} Orang Tua`;
+    return;
+  }
+
+  showToast(`${validRows.length} orang tua berhasil diimport.`, "success");
+  closeImportModal();
+  loadParents();
+});
 
 // ── Init ──────────────────────────────────────────────────
 loadParents();

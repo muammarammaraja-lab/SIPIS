@@ -257,6 +257,248 @@ function closeModal() { modalOv.style.display = "none"; }
 document.getElementById("btnCancel")?.addEventListener("click",  closeModal);
 document.getElementById("btnCancel2")?.addEventListener("click", closeModal);
 
+// ============================================================
+// IMPORT CSV — bulk tambah siswa
+// ============================================================
+const btnImport          = document.getElementById("btnImport");
+const importOv           = document.getElementById("importModalOverlay");
+const importStep1        = document.getElementById("importStep1");
+const importStep2        = document.getElementById("importStep2");
+const csvFileInput       = document.getElementById("csvFileInput");
+const csvFileName        = document.getElementById("csvFileName");
+const btnDownloadTpl     = document.getElementById("btnDownloadTemplate");
+const importPreviewBody  = document.getElementById("importPreviewBody");
+const importRowCount     = document.getElementById("importRowCount");
+const importErrors       = document.getElementById("importErrors");
+const btnImportConfirm   = document.getElementById("btnImportConfirm");
+const btnImportCancel    = document.getElementById("btnImportCancel");
+const btnImportClose     = document.getElementById("btnImportClose");
+
+let parsedRows = [];
+let classNameToId = {};
+
+function buildClassNameMap() {
+  classNameToId = {};
+  Object.entries(classesMap).forEach(([id, name]) => {
+    classNameToId[name.trim().toLowerCase()] = id;
+  });
+}
+
+btnImport?.addEventListener("click", () => {
+  resetImportModal();
+  importOv.style.display = "flex";
+});
+
+function resetImportModal() {
+  importStep1.style.display = "block";
+  importStep2.style.display = "none";
+  btnImportConfirm.style.display = "none";
+  csvFileInput.value = "";
+  csvFileName.textContent = "";
+  importErrors.style.display = "none";
+  importErrors.innerHTML = "";
+  parsedRows = [];
+}
+
+function closeImportModal() { importOv.style.display = "none"; }
+btnImportCancel?.addEventListener("click", closeImportModal);
+btnImportClose?.addEventListener("click", closeImportModal);
+
+btnDownloadTpl?.addEventListener("click", () => {
+  const headers = ["nama", "nis", "nisn", "kelas", "nama_orangtua", "wa_orangtua", "email_orangtua"];
+  const sample = [
+    "Ahmad Fulan", "2025001", "0012345678", "Abu Bakar AsSiddiq",
+    "Bapak Fulan", "+6281234567890", "fulan@email.com"
+  ];
+  const csv = headers.join(",") + "\n" + sample.map(v => `"${v}"`).join(",");
+  const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "template_import_siswa.csv";
+  a.click();
+  URL.revokeObjectURL(a.href);
+});
+
+function parseCSV(text) {
+  const lines = text.split(/\r?\n/).filter(l => l.trim() !== "");
+  if (!lines.length) return [];
+
+  const parseLine = (line) => {
+    const result = [];
+    let cur = "", inQuotes = false;
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (ch === '"') {
+        if (inQuotes && line[i+1] === '"') { cur += '"'; i++; }
+        else inQuotes = !inQuotes;
+      } else if (ch === "," && !inQuotes) {
+        result.push(cur); cur = "";
+      } else {
+        cur += ch;
+      }
+    }
+    result.push(cur);
+    return result.map(v => v.trim());
+  };
+
+  const headers = parseLine(lines[0]).map(h => h.toLowerCase());
+  return lines.slice(1).map(line => {
+    const vals = parseLine(line);
+    const row = {};
+    headers.forEach((h, i) => { row[h] = vals[i] ?? ""; });
+    return row;
+  });
+}
+
+csvFileInput?.addEventListener("change", async () => {
+  const file = csvFileInput.files[0];
+  if (!file) return;
+  csvFileName.textContent = `File: ${file.name}`;
+
+  const text = await file.text();
+  const rows = parseCSV(text);
+
+  if (!rows.length) {
+    showToast("File CSV kosong atau format tidak valid.", "error");
+    return;
+  }
+  if (rows.length > 500) {
+    showToast("Maksimal 500 baris per import.", "error");
+    return;
+  }
+
+  buildClassNameMap();
+  validateAndPreview(rows);
+});
+
+function validateAndPreview(rows) {
+  const errors = [];
+  parsedRows = rows.map((r, idx) => {
+    const rowNum = idx + 2;
+    const nama  = (r.nama ?? "").trim();
+    const wa    = (r.wa_orangtua ?? "").trim();
+    const kelas = (r.kelas ?? "").trim();
+
+    let status = "valid";
+    let note   = "";
+
+    if (!nama) {
+      status = "error"; note = "Nama kosong";
+      errors.push(`Baris ${rowNum}: nama wajib diisi`);
+    } else if (!wa) {
+      status = "error"; note = "No. WA kosong";
+      errors.push(`Baris ${rowNum}: no. WA orang tua wajib diisi`);
+    } else if (!/^\+?\d{9,15}$/.test(wa.replace(/[\s-]/g, ""))) {
+      status = "warning"; note = "Format WA mungkin salah";
+    }
+
+    let class_id = null;
+    if (kelas) {
+      class_id = classNameToId[kelas.toLowerCase()] ?? null;
+      if (!class_id && status === "valid") {
+        status = "warning";
+        note = "Kelas tidak ditemukan — akan disimpan tanpa kelas";
+      }
+    }
+
+    return {
+      name: nama,
+      nis: (r.nis ?? "").trim() || null,
+      nisn: (r.nisn ?? "").trim() || null,
+      class_id,
+      class_name_input: kelas,
+      parent_name: (r.nama_orangtua ?? "").trim() || null,
+      parent_whatsapp: wa.replace(/[\s-]/g, "") || null,
+      parent_email: (r.email_orangtua ?? "").trim() || null,
+      _status: status,
+      _note: note,
+    };
+  });
+
+  renderPreview(errors);
+}
+
+function renderPreview(errors) {
+  importStep1.style.display = "none";
+  importStep2.style.display = "block";
+
+  importRowCount.textContent = parsedRows.length;
+
+  if (errors.length) {
+    importErrors.style.display = "block";
+    importErrors.innerHTML = `<strong>${errors.length} masalah ditemukan:</strong><br>` +
+      errors.slice(0, 10).map(e => `• ${e}`).join("<br>") +
+      (errors.length > 10 ? `<br>... dan ${errors.length - 10} lainnya` : "");
+  }
+
+  const statusBadgeImport = (s) => ({
+    valid:   `<span class="badge badge-lunas">Siap</span>`,
+    warning: `<span class="badge badge-aktif">Perlu cek</span>`,
+    error:   `<span class="badge badge-ditolak">Error</span>`,
+  }[s]);
+
+  importPreviewBody.innerHTML = parsedRows.map(r => `
+    <tr>
+      <td style="padding:8px">${r.name || "-"}</td>
+      <td style="padding:8px">${r.nis || "-"}</td>
+      <td style="padding:8px">${r.class_name_input || "-"}</td>
+      <td style="padding:8px">${r.parent_whatsapp || "-"}</td>
+      <td style="padding:8px">${statusBadgeImport(r._status)}${r._note ? `<div style="font-size:10px;color:var(--grey-400)">${r._note}</div>` : ""}</td>
+    </tr>`).join("");
+
+  const validCount = parsedRows.filter(r => r._status !== "error").length;
+  if (validCount > 0) {
+    btnImportConfirm.style.display = "inline-flex";
+    btnImportConfirm.textContent = `Simpan ${validCount} Siswa`;
+  } else {
+    btnImportConfirm.style.display = "none";
+  }
+}
+
+btnImportConfirm?.addEventListener("click", async () => {
+  const validRows = parsedRows.filter(r => r._status !== "error");
+  if (!validRows.length) return;
+
+  btnImportConfirm.disabled = true;
+  btnImportConfirm.textContent = "Menyimpan...";
+
+  const payload = validRows.map(r => ({
+    name: r.name,
+    nis: r.nis,
+    nisn: r.nisn,
+    class_id: r.class_id,
+    parent_name: r.parent_name,
+    parent_whatsapp: r.parent_whatsapp,
+    parent_email: r.parent_email,
+    status: "aktif",
+    school_id: profile.school_id,
+  }));
+
+  const { error } = await supabase.from("students").insert(payload);
+
+  if (error) {
+    showToast("Gagal import: " + error.message, "error");
+    btnImportConfirm.disabled = false;
+    btnImportConfirm.textContent = `Simpan ${validRows.length} Siswa`;
+    return;
+  }
+
+  for (const r of validRows) {
+    if (r.parent_whatsapp) {
+      await syncParent({
+        name: r.name,
+        parent_name: r.parent_name,
+        parent_whatsapp: r.parent_whatsapp,
+        parent_email: r.parent_email,
+      });
+    }
+  }
+
+  showToast(`${validRows.length} siswa berhasil diimport.`, "success");
+  closeImportModal();
+  loadStudents();
+});
+
 // ── Init ──────────────────────────────────────────────────
 await loadClasses();
 loadStudents();
