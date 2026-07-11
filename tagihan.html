@@ -1,728 +1,239 @@
-// ============================================================
-// SFMS LITE — Tagihan v3.4
-// + Floating Action Bar (Gmail-style)
-// + Mini progress bar terbayar
-// + Badge status finansial 4 spektrum
-// + Kolom aksi yang lebih jelas
-// ============================================================
-import { supabase } from "./supabaseClient.js";
-import { requireAuth, applyRoleVisibility } from "./auth.js";
-import { showToast, formatRupiah, formatDate, exportCSV, qs } from "./utils.js";
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Tagihan — SFMS Lite</title>
+<link rel="stylesheet" href="css/style.css" />
+<link rel="stylesheet" href="css/mobile-fix.css" />
+</head>
+<body>
 
-const auth = await requireAuth();
-if (!auth) throw new Error("Unauthenticated");
-const { session, profile } = auth;
-applyRoleVisibility(profile);
+<div class="sidebar-overlay" id="sidebarOverlay"></div>
 
-const operatorEmail = session.user.email;
+<div class="app-shell">
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <div class="brand-icon"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div>
+      <div class="brand-text">
+        <div class="brand-name" data-app-name>SFMS Lite</div>
+        <div class="brand-sub" data-school-name>Memuat...</div>
+      </div>
+    </div>
+    <nav>
+      <div class="nav-section">MENU UTAMA</div>
+      <a href="dashboard.html"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>Dashboard</a>
+      <a href="siswa.html"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>Data Siswa</a>
+      <a href="orangtua.html"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>Data Orang Tua</a>
+      <div class="nav-section">KEUANGAN</div>
+      <a href="jenis-tagihan.html"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>Jenis Tagihan</a>
+      <a href="tagihan.html" class="active"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>Tagihan</a>
+      <a href="pembayaran.html"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>Pembayaran</a>
+      <div class="nav-section">PENGATURAN</div>
+      <a href="pengaturan.html" data-roles="kepala_sekolah,operator_sekolah"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.07 4.93A10 10 0 0 0 4.93 19.07M4.93 4.93a10 10 0 0 0 14.14 14.14"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2"/></svg>Pengaturan Sekolah</a>
+      <a href="template.html"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>Template WA</a>
+      <a href="laporan.html"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>Laporan</a>
+      <a href="users.html" data-roles="kepala_sekolah"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>Manajemen User</a>
+      <a href="audit-log.html"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>Audit Log</a>
+    </nav>
+    <div class="user-box">
+      <div data-user-name>...</div>
+      <div data-user-role></div>
+      <button data-logout><svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"/><polyline points="16 17 21 12 16 7"/><line x1="21" y1="12" x2="9" y2="12"/></svg> Keluar</button>
+    </div>
+  </aside>
 
-let currentBillsData = [];
-let selectedBillIds  = new Set();
-let waTemplate       = null;
-let waBatchQueue     = [];
-let waBatchIndex     = 0;
-let notifLogsMap     = {};
+  <main class="main">
+    <div class="topbar">
+      <div class="topbar-left">
+        <button class="btn-hamburger" id="btnMenu" aria-label="Buka menu"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg></button>
+        <h1>Tagihan</h1>
+      </div>
+      <div class="topbar-actions" id="topbarActions"></div>
+    </div>
+    <div class="content">
+      <div class="panel">
+        <div class="panel-head">
+          <h2>Daftar Tagihan</h2>
+          <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+            <select id="filterStatus" style="margin:0;width:150px">
+              <option value="">Semua Status</option>
+              <option value="aktif">Aktif</option>
+              <option value="lunas">Lunas</option>
+              <option value="sebagian_bayar">Sebagian Bayar</option>
+              <option value="dispensasi">Dispensasi</option>
+              <option value="dibatalkan">Dibatalkan</option>
+            </select>
+            <button class="btn btn-ghost btn-sm" id="btnExport">Export CSV</button>
+            <button class="btn btn-ghost btn-sm" id="btnBulkWA" style="display:none;background:#25D366;color:#fff;border-color:#25D366">
+              <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+              WA Massal (<span id="selectedCount">0</span>)
+            </button>
+            <button class="btn btn-primary btn-sm" id="btnGenerate" data-roles="kepala_sekolah,bendahara,admin_keuangan">+ Generate Massal</button>
+          </div>
+        </div>
+        <div class="panel-body">
+          <div id="heroBanner"></div>
+          <div class="table-wrap table-desktop" id="billsTableWrap">Memuat...</div>
+          <div class="card-list" id="billsCardList"></div>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
 
-// ── Elements ──────────────────────────────────────────────
-const tableWrap    = document.getElementById("billsTableWrap");
-const cardList     = document.getElementById("billsCardList");
-const filterStatus = document.getElementById("filterStatus");
-const btnExport    = document.getElementById("btnExport");
-const btnGenerate  = document.getElementById("btnGenerate");
-const modalOv      = document.getElementById("modalOverlay");
-const editModalOv  = document.getElementById("editModalOverlay");
-
-// ── Floating Action Bar ───────────────────────────────────
-function injectFloatingBar() {
-  if (document.getElementById("floatingActionBar")) return;
-  const bar = document.createElement("div");
-  bar.id = "floatingActionBar";
-  bar.style.cssText = `
-    display:none;position:fixed;bottom:72px;left:50%;transform:translateX(-50%);
-    background:#0a1428;color:#fff;padding:10px 20px;border-radius:99px;
-    box-shadow:0 8px 30px rgba(0,0,0,0.3);align-items:center;gap:14px;
-    z-index:99;font-size:13px;white-space:nowrap;transition:opacity .2s;
-  `;
-  bar.innerHTML = `
-    <div><b id="selectedBarCount" style="color:#38bdf8">0</b> tagihan dipilih</div>
-    <div style="width:1px;height:18px;background:rgba(255,255,255,.15)"></div>
-    <div style="display:flex;gap:6px">
-      <button id="btnBarWA" style="background:#25D366;border:none;color:#fff;padding:6px 14px;border-radius:99px;font-size:12.5px;cursor:pointer;display:flex;align-items:center;gap:5px">
-        <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-        Reminder
+<!-- Modal Generate Massal -->
+<div id="modalOverlay" style="display:none;position:fixed;inset:0;background:rgba(10,20,40,0.50);align-items:center;justify-content:center;z-index:100;padding:20px;backdrop-filter:blur(3px)">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h2>Generate Tagihan Massal</h2>
+      <button class="modal-close" id="btnCancel" aria-label="Tutup">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
       </button>
-      <button id="btnBarCSV" style="background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:#fff;padding:6px 14px;border-radius:99px;font-size:12.5px;cursor:pointer">
-        CSV
+    </div>
+    <form id="generateForm">
+      <label>Jenis Tagihan <span style="color:var(--red)">*</span></label>
+      <select id="g_billing_type" required></select>
+      <label>Target Siswa <span style="color:var(--red)">*</span></label>
+      <select id="g_target">
+        <option value="all">Semua Siswa Aktif</option>
+        <option value="class">Per Kelas</option>
+      </select>
+      <div id="classPicker" style="display:none">
+        <label>Pilih Kelas</label>
+        <select id="g_class"></select>
+      </div>
+      <label>Periode (cth: Juni 2026)</label>
+      <input type="text" id="g_period" placeholder="Juni 2026" />
+      <label>Nominal (Rp) <span style="color:var(--red)">*</span></label>
+      <input type="number" id="g_amount" min="0" required />
+      <label>Jatuh Tempo <span style="color:var(--red)">*</span></label>
+      <input type="date" id="g_due_date" required />
+      <div class="modal-footer">
+        <button type="button" class="btn btn-ghost" id="btnCancel2">Batal</button>
+        <button type="submit" class="btn btn-primary">Generate Tagihan</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal Edit Tagihan -->
+<div id="editModalOverlay" style="display:none;position:fixed;inset:0;background:rgba(10,20,40,0.50);align-items:center;justify-content:center;z-index:100;padding:20px;backdrop-filter:blur(3px)">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h2>Edit Tagihan</h2>
+      <button class="modal-close" id="btnCancelEdit" aria-label="Tutup">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
       </button>
-      <button id="btnBarCancel" style="background:none;border:none;color:rgba(255,255,255,.5);padding:6px 10px;border-radius:99px;font-size:13px;cursor:pointer">✕</button>
-    </div>`;
-  document.body.appendChild(bar);
-
-  document.getElementById("btnBarWA").onclick     = startBatchWA;
-  document.getElementById("btnBarCSV").onclick    = exportSelectedCSV;
-  document.getElementById("btnBarCancel").onclick = clearSelection;
-}
-
-function updateFloatingBar() {
-  const n = selectedBillIds.size;
-  const bar = document.getElementById("floatingActionBar");
-  if (!bar) return;
-  if (n > 0) {
-    const totalNominal = [...selectedBillIds].reduce((sum, id) => {
-      const b = currentBillsData.find(x => x.id === id);
-      return sum + (b ? Number(b.amount) - Number(b.amount_paid ?? 0) : 0);
-    }, 0);
-    document.getElementById("selectedBarCount").innerHTML =
-      `<b style="color:#38bdf8">${n}</b> tagihan &nbsp;<span style="color:rgba(255,255,255,.4);font-size:11px">Rp ${Number(totalNominal).toLocaleString("id-ID")}</span>`;
-    bar.style.display = "flex";
-  } else {
-    bar.style.display = "none";
-  }
-}
-
-function clearSelection() {
-  selectedBillIds.clear();
-  document.querySelectorAll(".check-bill").forEach(cb => cb.checked = false);
-  const ca = document.getElementById("checkAll");
-  if (ca) ca.checked = false;
-  updateFloatingBar();
-}
-
-// ── Badge status finansial 4 spektrum ─────────────────────
-function financialBadge(bill) {
-  const paid = Number(bill.amount_paid ?? 0);
-  const total = Number(bill.amount);
-  if (bill.status === "lunas" || paid >= total) {
-    return `<span class="badge badge-lunas">Lunas</span>`;
-  }
-  if (paid > 0 && paid < total) {
-    return `<span class="badge badge-sebagian_bayar">Sebagian</span>`;
-  }
-  if (bill.status === "menunggu_verifikasi") {
-    return `<span class="badge badge-menunggu_verifikasi">Verifikasi</span>`;
-  }
-  return `<span class="badge badge-aktif">Belum Lunas</span>`;
-}
-
-// ── Mini progress bar terbayar ────────────────────────────
-function progressCell(bill) {
-  const paid    = Number(bill.amount_paid ?? 0);
-  const total   = Number(bill.amount);
-  const pct     = Math.min(Math.round((paid / total) * 100), 100);
-  const color   = pct === 100 ? "#22c55e" : pct > 0 ? "#eab308" : "#e5e7eb";
-  return `
-    <div style="font-size:12px;margin-bottom:3px">${formatRupiah(paid)}</div>
-    <div style="width:72px;height:4px;background:var(--grey-100);border-radius:99px;overflow:hidden">
-      <div style="width:${pct}%;height:100%;background:${color};transition:width .3s"></div>
-    </div>`;
-}
-
-// ── Reminder badge ────────────────────────────────────────
-function reminderStatus(billId) {
-  const log = notifLogsMap[billId];
-  if (!log) return "belum";
-  const sent = new Date(log.created_at);
-  const now  = new Date();
-  if (sent.toDateString() === now.toDateString()) return "hari_ini";
-  const diffDays = Math.floor((now - sent) / 86400000);
-  return diffDays >= 3 ? "kirim_ulang" : "sudah";
-}
-
-function reminderBadge(billId) {
-  const log = notifLogsMap[billId];
-  const s = reminderStatus(billId);
-  if (s === "belum") return `<span style="font-size:11px;color:var(--grey-400)">⚪ Belum</span>`;
-  if (s === "hari_ini") {
-    const jam = new Date(log.created_at).toLocaleTimeString("id-ID", { hour:"2-digit", minute:"2-digit" });
-    return `<span style="font-size:11px;color:#d97706">⏳ ${jam}</span>`;
-  }
-  if (s === "kirim_ulang") return `<span style="font-size:11px;color:#16a34a">🟢 3+ hari lalu</span>`;
-  return `<span style="font-size:11px;color:#16a34a">🟢 Sudah</span>`;
-}
-
-// ── WA Helpers ────────────────────────────────────────────
-function formatPhone(raw) {
-  let p = (raw ?? "").replace(/[^0-9]/g, "");
-  if (p.startsWith("0")) p = "62" + p.slice(1);
-  if (!p.startsWith("62")) p = "62" + p;
-  return p;
-}
-
-async function getTemplate() {
-  if (waTemplate) return waTemplate;
-  const { data } = await supabase.from("wa_templates").select("body").eq("reminder_type","friendly").maybeSingle();
-  waTemplate = data?.body ?? null;
-  return waTemplate;
-}
-
-function buildMessage(tpl, bill) {
-  const siswa   = bill.students?.name ?? "-";
-  const jenis   = bill.billing_types?.name ?? "-";
-  const periode = bill.period ? ` (${bill.period})` : "";
-  const rincian = `${jenis}${periode}`;
-  const total   = formatRupiah(bill.amount);
-  const token   = bill.invoice_token;
-  const link    = token
-    ? `${window.location.origin}/invoice.html?t=${token}`
-    : `${window.location.origin}/invoice.html?id=${bill.id}`;
-
-  if (tpl) return tpl
-    .replace(/\{\{nama_siswa\}\}/g, siswa)
-    .replace(/\{\{rincian\}\}/g, rincian)
-    .replace(/\{\{total\}\}/g, total)
-    .replace(/\{\{link_pembayaran\}\}/g, link);
-
-  return `Assalamu'alaikum Warahmatullahi Wabarakatuh,\n\nBapak/Ibu Orang Tua/Wali dari *${siswa}* yang kami hormati,\n\nSemoga Bapak/Ibu senantiasa dalam lindungan Allah SWT.\n\nKami menginformasikan bahwa terdapat tagihan:\n\n📌 *Rincian:* ${rincian}\n💰 *Total:* ${total}\n\n🔗 ${link}\n\nJazakumullahu Khairan.\n_Tim Keuangan SDIT Qudwatun Hasanah_`;
-}
-
-function openWALink(phone, msg) {
-  window.open(`https://wa.me/${formatPhone(phone)}?text=${encodeURIComponent(msg)}`, "_blank");
-}
-
-async function logNotification(bill, message) {
-  await supabase.from("notification_logs").insert({
-    bill_id: bill.id, student_id: bill.students?.id ?? null,
-    channel: "WhatsApp Manual", status: "sent", message, operator: operatorEmail,
-  });
-  notifLogsMap[bill.id] = { created_at: new Date().toISOString() };
-}
-
-// ── Load notification logs ────────────────────────────────
-async function loadNotifLogs(billIds) {
-  if (!billIds.length) return;
-  const { data } = await supabase.from("notification_logs").select("bill_id, created_at").in("bill_id", billIds).order("created_at", { ascending: false });
-  notifLogsMap = {};
-  (data ?? []).forEach(log => { if (!notifLogsMap[log.bill_id]) notifLogsMap[log.bill_id] = log; });
-}
-
-// ── Filter & export ───────────────────────────────────────
-filterStatus?.addEventListener("change", () => loadBills(filterStatus.value));
-
-btnExport?.addEventListener("click", () => {
-  if (!currentBillsData.length) { showToast("Tidak ada data.", "error"); return; }
-  exportCSV(`tagihan_${new Date().toISOString().slice(0,10)}.csv`,
-    ["Siswa","Jenis Tagihan","Periode","Nominal","Terbayar","Jatuh Tempo","Status"],
-    currentBillsData.map(b => [
-      b.students?.name ?? "-", b.billing_types?.name ?? "-", b.period ?? "-",
-      b.amount, b.amount_paid ?? 0, b.due_date ?? "-", b.status,
-    ])
-  );
-});
-
-function exportSelectedCSV() {
-  const selected = currentBillsData.filter(b => selectedBillIds.has(b.id));
-  if (!selected.length) return;
-  exportCSV(`tagihan_selected_${new Date().toISOString().slice(0,10)}.csv`,
-    ["Siswa","Jenis Tagihan","Periode","Nominal","Terbayar","Jatuh Tempo","Status"],
-    selected.map(b => [
-      b.students?.name ?? "-", b.billing_types?.name ?? "-", b.period ?? "-",
-      b.amount, b.amount_paid ?? 0, b.due_date ?? "-", b.status,
-    ])
-  );
-}
-
-// ── Modal generate ────────────────────────────────────────
-btnGenerate?.addEventListener("click", () => { modalOv.style.display = "flex"; });
-function closeGenModal() { modalOv.style.display = "none"; }
-document.getElementById("btnCancel")?.addEventListener("click",  closeGenModal);
-document.getElementById("btnCancel2")?.addEventListener("click", closeGenModal);
-document.getElementById("g_target")?.addEventListener("change", e => {
-  document.getElementById("classPicker").style.display = e.target.value === "class" ? "block" : "none";
-});
-
-// ── Modal edit ────────────────────────────────────────────
-function closeEditModal() { editModalOv.style.display = "none"; }
-document.getElementById("btnCancelEdit")?.addEventListener("click",  closeEditModal);
-document.getElementById("btnCancelEdit2")?.addEventListener("click", closeEditModal);
-
-function openEditModal(bill) {
-  qs("#editBillId").value = bill.id;
-  qs("#e_siswa").value    = bill.students?.name ?? "-";
-  qs("#e_period").value   = bill.period ?? "";
-  qs("#e_due_date").value = bill.due_date ?? "";
-  editModalOv.style.display = "flex";
-}
-
-document.getElementById("editBillForm")?.addEventListener("submit", async e => {
-  e.preventDefault();
-  const { error } = await supabase.from("bills").update({
-    period: qs("#e_period").value.trim(),
-    due_date: qs("#e_due_date").value,
-  }).eq("id", qs("#editBillId").value);
-  if (error) { showToast("Gagal: " + error.message, "error"); return; }
-  showToast("Tagihan diperbarui.", "success");
-  closeEditModal();
-  loadBills(filterStatus?.value ?? "");
-});
-
-// ── Load bills ────────────────────────────────────────────
-async function loadBills(statusFilter = "") {
-  tableWrap.innerHTML = `<div class="skeleton skeleton-row"></div><div class="skeleton skeleton-row"></div><div class="skeleton skeleton-row"></div>`;
-  cardList.innerHTML = "";
-  selectedBillIds.clear();
-  updateFloatingBar();
-
-  let q = supabase.from("bills")
-    .select("*, students(id, name, parent_whatsapp), billing_types(name)")
-    .order("due_date", { ascending: false })
-    .limit(300);
-  if (statusFilter) q = q.eq("status", statusFilter);
-
-  const { data, error } = await q;
-  if (error) {
-    tableWrap.innerHTML = `<div class="empty-state"><div class="empty-title">Gagal</div><div class="empty-desc">${error.message}</div></div>`;
-    return;
-  }
-  if (!data?.length) {
-    const empty = `<div class="empty-state"><div class="empty-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div><div class="empty-title">Belum ada tagihan</div><div class="empty-desc">Klik "+ Generate Massal" untuk membuat tagihan.</div></div>`;
-    tableWrap.innerHTML = cardList.innerHTML = empty;
-    currentBillsData = [];
-    return;
-  }
-
-  currentBillsData = data;
-  await loadNotifLogs(data.map(b => b.id));
-
-  // ── Hero Banner: ringkasan & aksi cepat ───────────────
-  const belumLunas   = data.filter(b => b.status !== "lunas");
-  const belumReminder = belumLunas.filter(b => reminderStatus(b.id) === "belum");
-  const menungguVerif = data.filter(b => b.status === "menunggu_verifikasi");
-  const totalSisa     = belumLunas.reduce((s, b) => s + Number(b.amount) - Number(b.amount_paid ?? 0), 0);
-
-  const heroBanner = belumLunas.length > 0 ? `
-    <div style="background:var(--surface-1);border:1px solid var(--border);border-radius:12px;padding:14px 18px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
-      <div style="display:flex;gap:20px;flex-wrap:wrap">
-        <div style="text-align:center">
-          <div style="font-size:22px;font-weight:600;color:var(--text-primary)">${belumLunas.length}</div>
-          <div style="font-size:11px;color:var(--text-secondary)">Belum Lunas</div>
-        </div>
-        <div style="width:1px;background:var(--border)"></div>
-        <div style="text-align:center">
-          <div style="font-size:22px;font-weight:600;color:#d97706">${belumReminder.length}</div>
-          <div style="font-size:11px;color:var(--text-secondary)">Belum Diingatkan</div>
-        </div>
-        ${menungguVerif.length > 0 ? `
-        <div style="width:1px;background:var(--border)"></div>
-        <div style="text-align:center">
-          <div style="font-size:22px;font-weight:600;color:#3b82f6">${menungguVerif.length}</div>
-          <div style="font-size:11px;color:var(--text-secondary)">Menunggu Verifikasi</div>
-        </div>` : ""}
-        <div style="width:1px;background:var(--border)"></div>
-        <div style="text-align:center">
-          <div style="font-size:16px;font-weight:600;color:var(--text-primary)">Rp ${Number(totalSisa).toLocaleString("id-ID")}</div>
-          <div style="font-size:11px;color:var(--text-secondary)">Total Sisa Tagihan</div>
-        </div>
-      </div>
-      <div style="display:flex;gap:8px;flex-wrap:wrap">
-        ${belumReminder.length > 0 ? `
-        <button id="btnReminderSemua" style="background:#25D366;color:#fff;border:none;padding:8px 16px;border-radius:8px;font-size:13px;font-weight:500;cursor:pointer;display:flex;align-items:center;gap:6px">
-          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-          Reminder ${belumReminder.length} yang Belum
-        </button>` : ""}
-        ${menungguVerif.length > 0 ? `
-        <button id="btnFilterVerif" style="background:#eff6ff;color:#2563eb;border:1px solid #bfdbfe;padding:8px 14px;border-radius:8px;font-size:13px;cursor:pointer">
-          🔵 Lihat ${menungguVerif.length} Menunggu Verifikasi
-        </button>` : ""}
-      </div>
-    </div>` : "";
-
-  // Inject hero banner sebelum tabel
-  const heroWrap = document.getElementById("heroBanner");
-  if (heroWrap) heroWrap.innerHTML = heroBanner;
-
-  const checkCol = b => b.status !== "lunas" && b.students?.parent_whatsapp
-    ? `<input type="checkbox" class="check-bill" value="${b.id}" style="width:15px;height:15px;cursor:pointer" />`
-    : `<span style="display:inline-block;width:15px"></span>`;
-
-  const actionCol = b => {
-    const invoiceLink = b.invoice_token
-      ? `invoice.html?t=${b.invoice_token}`
-      : `invoice.html?id=${b.id}`;
-
-    // Kondisi 1: Lunas
-    if (b.status === "lunas") {
-      return `<a href="${invoiceLink}" target="_blank" class="btn btn-ghost btn-sm" style="font-size:12px">🧾 Invoice</a>`;
-    }
-
-    // Kondisi 2: Menunggu verifikasi
-    if (b.status === "menunggu_verifikasi") {
-      return `<div style="display:flex;gap:4px;align-items:center">
-        <button class="btn btn-sm" data-verify="${b.id}" style="background:#3b82f6;color:#fff;border-color:#3b82f6;padding:4px 10px;font-size:12px">🔵 Verifikasi</button>
-        <a href="${invoiceLink}" target="_blank" class="btn btn-ghost btn-sm" style="font-size:12px">🧾</a>
-      </div>`;
-    }
-
-    // Kondisi 3: Belum lunas — WA kontekstual + Bayar + Invoice + Edit
-    const rs = reminderStatus(b.id);
-    let waBtn = "";
-    if (b.students?.parent_whatsapp) {
-      if (rs === "hari_ini") {
-        waBtn = `<button class="btn btn-sm" data-wa="${b.id}" title="Sudah diingatkan hari ini"
-          style="background:#fef08a;color:#854d0e;border-color:#e5d76b;padding:4px 8px;font-size:12px"
-          onclick="if(!confirm('Sudah diingatkan hari ini. Kirim lagi?')) return false">⏳ Terkirim</button>`;
-      } else if (rs === "kirim_ulang") {
-        waBtn = `<button class="btn btn-sm" data-wa="${b.id}"
-          style="background:#25D366;color:#fff;border-color:#25D366;padding:4px 8px;font-size:12px">🔄 Kirim Ulang</button>`;
-      } else {
-        waBtn = `<button class="btn btn-sm" data-wa="${b.id}"
-          style="background:#25D366;color:#fff;border-color:#25D366;padding:4px 10px;font-size:12px;font-weight:500">💬 WA</button>`;
-      }
-    }
-
-    return `<div style="display:flex;gap:4px;align-items:center;flex-wrap:wrap">
-      ${waBtn}
-      <button class="btn btn-sm" data-pay="${b.id}"
-        style="background:transparent;color:var(--grey-600);border:1px solid var(--grey-300);padding:4px 8px;font-size:12px">💰 Bayar</button>
-      <a href="${invoiceLink}" target="_blank" class="btn btn-ghost btn-sm" style="font-size:12px">🧾</a>
-      <button class="btn btn-ghost btn-sm" data-edit-bill="${b.id}" style="font-size:12px;padding:4px 6px">⋮</button>
-    </div>`;
-  };
-
-  // Desktop table
-  tableWrap.innerHTML = `
-    <table>
-      <thead><tr>
-        <th style="width:20px"><input type="checkbox" id="checkAll" style="width:15px;height:15px;cursor:pointer" /></th>
-        <th>Siswa</th><th>Jenis</th><th>Periode</th>
-        <th>Nominal</th><th>Terbayar</th><th>Jatuh Tempo</th>
-        <th>Status</th><th>Reminder</th><th>Aksi</th>
-      </tr></thead>
-      <tbody>
-        ${data.map(b => `<tr>
-          <td>${checkCol(b)}</td>
-          <td><strong>${b.students?.name ?? "-"}</strong></td>
-          <td>${b.billing_types?.name ?? "-"}</td>
-          <td>${b.period ?? "-"}</td>
-          <td>${formatRupiah(b.amount)}</td>
-          <td>${progressCell(b)}</td>
-          <td style="font-size:12px">${formatDate(b.due_date)}</td>
-          <td>${financialBadge(b)}</td>
-          <td>${b.status !== "lunas" ? reminderBadge(b.id) : "-"}</td>
-          <td>${actionCol(b)}</td>
-        </tr>`).join("")}
-      </tbody>
-    </table>`;
-
-  // Mobile card list
-  cardList.innerHTML = data.map(b => {
-    const pct = Math.min(Math.round(((b.amount_paid ?? 0) / b.amount) * 100), 100);
-    const invoiceLink = b.invoice_token ? `invoice.html?t=${b.invoice_token}` : `invoice.html?id=${b.id}`;
-    return `<div class="card-list-item">
-      <div class="cli-name">${b.students?.name ?? "-"}</div>
-      <div class="cli-meta">
-        <span>${b.billing_types?.name ?? "-"}</span>
-        ${b.period ? `<span>${b.period}</span>` : ""}
-        <span>Jatuh tempo: ${formatDate(b.due_date)}</span>
-        ${b.status !== "lunas" ? `<span>${reminderBadge(b.id)}</span>` : ""}
-      </div>
-      <div style="margin:6px 0 2px">
-        <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--grey-500);margin-bottom:3px">
-          <span>${formatRupiah(b.amount_paid ?? 0)}</span><span>${pct}%</span>
-        </div>
-        <div style="width:100%;height:5px;background:var(--grey-100);border-radius:99px;overflow:hidden">
-          <div style="width:${pct}%;height:100%;background:${pct===100?"#22c55e":pct>0?"#eab308":"#e5e7eb"};transition:width .3s"></div>
-        </div>
-      </div>
-      <div class="cli-footer">
-        ${financialBadge(b)}
-        <div style="display:flex;gap:5px;align-items:center">
-          ${b.status !== "lunas" && b.students?.parent_whatsapp
-            ? `<button class="btn btn-sm" data-wa="${b.id}" style="background:#25D366;color:#fff;border-color:#25D366;padding:4px 10px;font-size:12px">WA</button>` : ""}
-          <a href="${invoiceLink}" target="_blank" class="btn btn-ghost btn-sm" style="font-size:12px">🧾</a>
-          <button class="btn btn-ghost btn-sm" data-edit-bill="${b.id}" style="font-size:12px">Edit</button>
-        </div>
-      </div>
-    </div>`;
-  }).join("");
-
-  // Listeners
-  document.querySelectorAll("[data-edit-bill]").forEach(btn =>
-    btn.addEventListener("click", () => openEditModal(data.find(b => b.id === btn.dataset.editBill)))
-  );
-  document.querySelectorAll("[data-wa]").forEach(btn =>
-    btn.addEventListener("click", () => openWAPreview(btn.dataset.wa))
-  );
-
-  // Verifikasi instan dari tabel
-  document.querySelectorAll("[data-verify]").forEach(btn =>
-    btn.addEventListener("click", () => openVerifyModal(btn.dataset.verify))
-  );
-
-  // Catat bayar manual langsung dari tabel
-  document.querySelectorAll("[data-pay]").forEach(btn =>
-    btn.addEventListener("click", () => openPayModal(btn.dataset.pay))
-  );
-  document.querySelectorAll(".check-bill").forEach(cb =>
-    cb.addEventListener("change", () => {
-      if (cb.checked) selectedBillIds.add(cb.value);
-      else selectedBillIds.delete(cb.value);
-      updateFloatingBar();
-    })
-  );
-
-  // Hero banner listeners
-  document.getElementById("btnReminderSemua")?.addEventListener("click", async () => {
-    const bills = data.filter(b => reminderStatus(b.id) === "belum" && b.students?.parent_whatsapp);
-    if (!bills.length) { showToast("Semua tagihan sudah pernah diingatkan.", "success"); return; }
-    const tpl = await getTemplate();
-    waBatchQueue = bills.map(b => ({ bill: b, phone: b.students.parent_whatsapp, name: b.students.name ?? "-", detail: `${b.billing_types?.name ?? "-"}${b.period ? ` (${b.period})` : ""}`, amount: b.amount, message: buildMessage(tpl, b) }));
-    waBatchIndex = 0;
-    wizardOv.style.display = "flex";
-    renderWizardStep();
-  });
-
-  document.getElementById("btnFilterVerif")?.addEventListener("click", () => {
-    filterStatus.value = "menunggu_verifikasi";
-    loadBills("menunggu_verifikasi");
-  });
-  document.getElementById("checkAll")?.addEventListener("change", e => {
-    selectedBillIds.clear();
-    document.querySelectorAll(".check-bill").forEach(cb => {
-      cb.checked = e.target.checked;
-      if (e.target.checked) selectedBillIds.add(cb.value);
-    });
-    updateFloatingBar();
-  });
-}
-
-// ── WA Preview per tagihan ────────────────────────────────
-const waPreviewOv   = document.getElementById("waPreviewOverlay");
-const waPreviewText = document.getElementById("waPreviewText");
-let waActiveBill    = null;
-
-async function openWAPreview(billId) {
-  const bill = currentBillsData.find(b => b.id === billId);
-  if (!bill) return;
-  waActiveBill = bill;
-  const tpl = await getTemplate();
-  document.getElementById("waRecipient").textContent = `${bill.students?.name ?? "-"} — ${bill.students?.parent_whatsapp ?? "-"}`;
-  waPreviewText.value = buildMessage(tpl, bill);
-  waPreviewOv.style.display = "flex";
-}
-
-document.getElementById("btnWAClose")?.addEventListener("click",  () => waPreviewOv.style.display = "none");
-document.getElementById("btnWACancel")?.addEventListener("click", () => waPreviewOv.style.display = "none");
-document.getElementById("btnWAOpen")?.addEventListener("click", async () => {
-  if (!waActiveBill) return;
-  openWALink(waActiveBill.students?.parent_whatsapp, waPreviewText.value);
-  await logNotification(waActiveBill, waPreviewText.value);
-  waPreviewOv.style.display = "none";
-  showToast("WhatsApp dibuka.", "success");
-});
-
-// ── WA Batch Wizard ───────────────────────────────────────
-const wizardOv = document.getElementById("wizardOverlay");
-
-async function startBatchWA() {
-  const ids = [...selectedBillIds];
-  const bills = currentBillsData.filter(b => ids.includes(b.id) && b.students?.parent_whatsapp);
-  if (!bills.length) { showToast("Tidak ada tagihan dengan nomor WA orang tua.", "error"); return; }
-  const tpl = await getTemplate();
-  waBatchQueue = bills.map(b => ({ bill: b, phone: b.students.parent_whatsapp, name: b.students.name ?? "-", detail: `${b.billing_types?.name ?? "-"}${b.period ? ` (${b.period})` : ""}`, amount: b.amount, message: buildMessage(tpl, b) }));
-  waBatchIndex = 0;
-  wizardOv.style.display = "flex";
-  renderWizardStep();
-}
-
-function renderWizardStep() {
-  if (waBatchIndex >= waBatchQueue.length) {
-    document.getElementById("wzProgressBar").style.width = "100%";
-    document.getElementById("wzPercent").textContent = "100%";
-    document.getElementById("wzProgressText").textContent = `Selesai! ${waBatchQueue.length} pesan terkirim.`;
-    setTimeout(() => { wizardOv.style.display = "none"; clearSelection(); showToast(`${waBatchQueue.length} reminder selesai.`, "success"); }, 1200);
-    return;
-  }
-  const item = waBatchQueue[waBatchIndex];
-  const total = waBatchQueue.length;
-  const pct = Math.round((waBatchIndex / total) * 100);
-  document.getElementById("wzCurrent").textContent = waBatchIndex + 1;
-  document.getElementById("wzTotal").textContent   = total;
-  document.getElementById("wzProgressBar").style.width  = pct + "%";
-  document.getElementById("wzPercent").textContent      = pct + "%";
-  document.getElementById("wzProgressText").textContent = `${waBatchIndex} dari ${total} selesai`;
-  document.getElementById("wzName").textContent   = item.name;
-  document.getElementById("wzPhone").textContent  = item.phone;
-  document.getElementById("wzDetail").textContent = item.detail;
-  document.getElementById("wzAmount").textContent = formatRupiah(item.amount);
-  document.getElementById("wzPreviewText").value  = item.message;
-  document.getElementById("btnWzOpenWA").style.display = "inline-flex";
-  document.getElementById("btnWzNext").style.display   = "none";
-}
-
-document.getElementById("btnWzOpenWA")?.addEventListener("click", async () => {
-  const item = waBatchQueue[waBatchIndex];
-  openWALink(item.phone, document.getElementById("wzPreviewText").value);
-  await logNotification(item.bill, document.getElementById("wzPreviewText").value);
-  document.getElementById("btnWzOpenWA").style.display = "none";
-  document.getElementById("btnWzNext").style.display   = "inline-flex";
-});
-document.getElementById("btnWzNext")?.addEventListener("click",   () => { waBatchIndex++; renderWizardStep(); });
-document.getElementById("btnWzSkip")?.addEventListener("click",   () => { waBatchIndex++; renderWizardStep(); });
-document.getElementById("btnWzCancel")?.addEventListener("click", () => { if (confirm("Hentikan antrean?")) wizardOv.style.display = "none"; });
-
-// ── Form data ─────────────────────────────────────────────
-async function loadFormData() {
-  const [{ data: types }, { data: classes }] = await Promise.all([
-    supabase.from("billing_types").select("id, name, default_amount").eq("is_active", true),
-    supabase.from("classes").select("id, name").order("name"),
-  ]);
-  const selType = qs("#g_billing_type");
-  if (selType && types?.length) {
-    selType.innerHTML = types.map(t => `<option value="${t.id}" data-amount="${t.default_amount ?? 0}">${t.name}</option>`).join("");
-    const setAmt = () => { const o = selType.selectedOptions[0]; if (o) qs("#g_amount").value = o.dataset.amount; };
-    selType.addEventListener("change", setAmt); setAmt();
-  }
-  const selClass = qs("#g_class");
-  if (selClass && classes?.length) selClass.innerHTML = classes.map(c => `<option value="${c.id}">${c.name}</option>`).join("");
-}
-
-document.getElementById("generateForm")?.addEventListener("submit", async e => {
-  e.preventDefault();
-  const billing_type_id = qs("#g_billing_type").value;
-  const target          = qs("#g_target").value;
-  const class_id        = qs("#g_class").value;
-  const period          = qs("#g_period").value.trim();
-  const amount          = Number(qs("#g_amount").value);
-  const due_date        = qs("#g_due_date").value;
-  if (!billing_type_id || !amount || !due_date) { showToast("Jenis tagihan, nominal, dan jatuh tempo wajib diisi.", "error"); return; }
-  let sq = supabase.from("students").select("id").eq("status","aktif");
-  if (target === "class" && class_id) sq = sq.eq("class_id", class_id);
-  const { data: students, error: se } = await sq;
-  if (se) { showToast("Gagal ambil siswa: " + se.message, "error"); return; }
-  if (!students?.length) { showToast("Tidak ada siswa aktif.", "error"); return; }
-  const { error } = await supabase.from("bills").insert(students.map(s => ({ student_id: s.id, billing_type_id, period, amount, due_date, status: "aktif", amount_paid: 0 })));
-  if (error) { showToast("Gagal generate: " + error.message, "error"); return; }
-  showToast(`${students.length} tagihan berhasil dibuat.`, "success");
-  closeGenModal(); loadBills();
-});
-
-// ── Verifikasi instan dari tabel ─────────────────────────
-async function openVerifyModal(billId) {
-  const { data: payments } = await supabase
-    .from("payments")
-    .select("id, amount, proof_url, created_at")
-    .eq("bill_id", billId)
-    .eq("status", "menunggu_verifikasi")
-    .order("created_at", { ascending: false })
-    .limit(1);
-
-  const p = payments?.[0];
-  if (!p) { showToast("Tidak ada pembayaran menunggu verifikasi.", "error"); return; }
-
-  const bill = currentBillsData.find(b => b.id === billId);
-  const overlay = document.createElement("div");
-  overlay.style.cssText = "position:fixed;inset:0;background:rgba(10,20,40,.55);display:flex;align-items:center;justify-content:center;z-index:200;padding:20px;backdrop-filter:blur(3px)";
-  overlay.innerHTML = `
-    <div class="modal-box" style="max-width:420px">
-      <div class="modal-header">
-        <h2>🔵 Verifikasi Pembayaran</h2>
-        <button class="modal-close" id="_vClose">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-        </button>
-      </div>
-      <div style="padding:4px 0 12px">
-        <table style="width:100%;font-size:13px;border-collapse:collapse;margin-bottom:12px">
-          <tr><td style="color:var(--grey-500);padding:5px 0;width:110px">Siswa</td><td><strong>${bill?.students?.name ?? "-"}</strong></td></tr>
-          <tr><td style="color:var(--grey-500);padding:5px 0">Tagihan</td><td>${bill?.billing_types?.name ?? "-"} ${bill?.period ? `— ${bill.period}` : ""}</td></tr>
-          <tr><td style="color:var(--grey-500);padding:5px 0">Jumlah</td><td><strong>${formatRupiah(p.amount)}</strong></td></tr>
-        </table>
-        ${p.proof_url
-          ? `<div style="margin-bottom:10px">
-               <div style="font-size:12px;font-weight:500;color:var(--grey-600);margin-bottom:6px">Bukti Transfer:</div>
-               <a href="${p.proof_url}" target="_blank">
-                 <img src="${p.proof_url}" style="width:100%;border-radius:8px;max-height:220px;object-fit:cover" />
-               </a>
-             </div>`
-          : `<p style="font-size:12px;color:var(--grey-400);margin-bottom:10px"><em>Tidak ada bukti transfer</em></p>`}
-      </div>
+    </div>
+    <form id="editBillForm">
+      <input type="hidden" id="editBillId" />
+      <label>Siswa</label>
+      <input type="text" id="e_siswa" disabled style="background:var(--grey-50)" />
+      <label>Periode</label>
+      <input type="text" id="e_period" placeholder="cth: Juni 2026" />
+      <label>Jatuh Tempo</label>
+      <input type="date" id="e_due_date" />
       <div class="modal-footer">
-        <button class="btn btn-ghost" id="_vTolak" style="color:var(--red)">✕ Tolak</button>
-        <button class="btn btn-primary" id="_vTerima" style="background:#22c55e;border-color:#22c55e">✓ Terima & Lunas</button>
+        <button type="button" class="btn btn-ghost" id="btnCancelEdit2">Batal</button>
+        <button type="submit" class="btn btn-primary">Simpan</button>
       </div>
-    </div>`;
-  document.body.appendChild(overlay);
+    </form>
+  </div>
+</div>
 
-  const close = () => overlay.remove();
-  overlay.querySelector("#_vClose").onclick = close;
-  overlay.addEventListener("click", e => { if (e.target === overlay) close(); });
+<!-- Modal Preview WA (per tagihan) -->
+<div id="waPreviewOverlay" style="display:none;position:fixed;inset:0;background:rgba(10,20,40,0.50);align-items:center;justify-content:center;z-index:100;padding:20px;backdrop-filter:blur(3px)">
+  <div class="modal-box" style="max-width:480px">
+    <div class="modal-header">
+      <h2>
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="#25D366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+        Preview Pesan WhatsApp
+      </h2>
+      <button class="modal-close" id="btnWAClose">
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div style="padding:4px 0 12px">
+      <div style="font-size:12px;color:var(--grey-500);margin-bottom:8px">Ke: <strong id="waRecipient">-</strong></div>
+      <label style="font-size:12px;font-weight:600;color:var(--grey-700)">Edit pesan jika perlu:</label>
+      <textarea id="waPreviewText" rows="10" style="width:100%;margin-top:6px;font-size:12.5px;font-family:var(--font-mono,monospace);padding:10px;border-radius:8px;border:1px solid var(--grey-300);resize:vertical;line-height:1.6"></textarea>
+    </div>
+    <div class="modal-footer">
+      <button type="button" class="btn btn-ghost" id="btnWACancel">Batal</button>
+      <button type="button" class="btn btn-primary" id="btnWAOpen" style="background:#25D366;border-color:#25D366">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+        Buka WhatsApp
+      </button>
+    </div>
+  </div>
+</div>
 
-  overlay.querySelector("#_vTolak").onclick = async () => {
-    const { error } = await supabase.from("payments").update({ status: "ditolak" }).eq("id", p.id);
-    if (error) { showToast("Gagal menolak: " + error.message, "error"); return; }
-    showToast("Pembayaran ditolak.", "success");
-    close(); loadBills(filterStatus?.value ?? "");
-  };
+<!-- Modal Wizard Batch WA -->
+<div id="wizardOverlay" style="display:none;position:fixed;inset:0;background:rgba(10,20,40,0.50);align-items:center;justify-content:center;z-index:100;padding:20px;backdrop-filter:blur(3px)">
+  <div class="modal-box" style="max-width:480px">
+    <div class="modal-header" style="flex-direction:column;align-items:flex-start;gap:10px">
+      <div style="display:flex;align-items:center;justify-content:space-between;width:100%">
+        <h2 style="display:flex;align-items:center;gap:8px">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="#25D366"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+          Reminder Massal
+        </h2>
+        <span style="font-size:13px;color:var(--grey-500)"><span id="wzCurrent">0</span> / <span id="wzTotal">0</span></span>
+      </div>
+      <!-- Progress bar -->
+      <div style="width:100%">
+        <div style="width:100%;height:8px;background:var(--grey-100);border-radius:99px;overflow:hidden">
+          <div id="wzProgressBar" style="height:100%;background:#25D366;width:0%;transition:width 0.4s ease;border-radius:99px"></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--grey-500);margin-top:4px">
+          <span id="wzProgressText">Memulai...</span>
+          <span id="wzPercent">0%</span>
+        </div>
+      </div>
+    </div>
 
-  overlay.querySelector("#_vTerima").onclick = async () => {
-    const { error } = await supabase.from("payments").update({ status: "diterima" }).eq("id", p.id);
-    if (!error) await supabase.from("bills").update({ status: "lunas", amount_paid: p.amount }).eq("id", billId);
-    if (error) { showToast("Gagal verifikasi: " + error.message, "error"); return; }
-    showToast("Pembayaran diterima. Tagihan lunas! ✓", "success");
-    close(); loadBills(filterStatus?.value ?? "");
-  };
-}
+    <div style="padding:12px 0">
+      <table style="width:100%;font-size:13px;border-collapse:collapse;margin-bottom:12px">
+        <tr><td style="color:var(--grey-500);padding:4px 0;width:110px">Siswa</td><td style="font-weight:600" id="wzName">-</td></tr>
+        <tr><td style="color:var(--grey-500);padding:4px 0">No. WA</td><td id="wzPhone">-</td></tr>
+        <tr><td style="color:var(--grey-500);padding:4px 0">Tagihan</td><td id="wzDetail">-</td></tr>
+        <tr><td style="color:var(--grey-500);padding:4px 0">Nominal</td><td style="font-weight:600;color:var(--red)" id="wzAmount">-</td></tr>
+      </table>
+      <label style="font-size:12px;font-weight:600;color:var(--grey-700)">Preview & edit pesan:</label>
+      <textarea id="wzPreviewText" rows="7" style="width:100%;margin-top:6px;font-size:12px;font-family:var(--font-mono,monospace);padding:10px;border-radius:8px;border:1px solid var(--grey-300);resize:vertical;line-height:1.6"></textarea>
+    </div>
 
-// ── Bayar langsung dari tabel ─────────────────────────────
-async function openPayModal(billId) {
-  const bill = currentBillsData.find(b => b.id === billId);
-  if (!bill) return;
-  const sisa = Number(bill.amount) - Number(bill.amount_paid ?? 0);
-
-  const overlay = document.createElement("div");
-  overlay.style.cssText = "position:fixed;inset:0;background:rgba(10,20,40,.55);display:flex;align-items:center;justify-content:center;z-index:200;padding:20px;backdrop-filter:blur(3px)";
-  overlay.innerHTML = `
-    <div class="modal-box" style="max-width:380px">
-      <div class="modal-header">
-        <h2>💰 Catat Pembayaran</h2>
-        <button class="modal-close" id="_pClose">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+    <div class="modal-footer" style="justify-content:space-between">
+      <button type="button" class="btn btn-ghost btn-sm" id="btnWzCancel">Hentikan</button>
+      <div style="display:flex;gap:8px">
+        <button type="button" class="btn btn-ghost btn-sm" id="btnWzSkip">Lewati →</button>
+        <button type="button" class="btn btn-sm" id="btnWzOpenWA" style="background:#25D366;color:#fff;border-color:#25D366">
+          <svg xmlns="http://www.w3.org/2000/svg" width="13" height="13" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+          Buka WhatsApp
         </button>
+        <button type="button" class="btn btn-primary btn-sm" id="btnWzNext" style="display:none">Lanjut →</button>
       </div>
-      <div style="padding:4px 0 12px">
-        <p style="font-size:13px;color:var(--grey-600);margin-bottom:12px">
-          <strong>${bill.students?.name ?? "-"}</strong> — ${bill.billing_types?.name ?? "-"} ${bill.period ? `(${bill.period})` : ""}
-        </p>
-        <label>Jumlah Dibayar (Rp)</label>
-        <input type="number" id="_pAmount" value="${sisa}" style="width:100%;margin-bottom:8px" />
-        <label>Metode</label>
-        <select id="_pMethod" style="width:100%;margin-bottom:8px">
-          <option value="tunai">Tunai</option>
-          <option value="transfer">Transfer</option>
-          <option value="qris">QRIS</option>
-        </select>
-        <label>Catatan (opsional)</label>
-        <input type="text" id="_pNote" placeholder="cth: Titip wali kelas" style="width:100%" />
-      </div>
-      <div class="modal-footer">
-        <button class="btn btn-ghost" id="_pCancel">Batal</button>
-        <button class="btn btn-primary" id="_pSave" style="background:#2563eb;border-color:#2563eb">Simpan & Lunas</button>
-      </div>
-    </div>`;
-  document.body.appendChild(overlay);
+    </div>
+  </div>
+</div>
 
-  const close = () => overlay.remove();
-  overlay.querySelector("#_pClose").onclick = close;
-  overlay.querySelector("#_pCancel").onclick = close;
-  overlay.addEventListener("click", e => { if (e.target === overlay) close(); });
+<nav class="bottom-nav">
+  <a href="dashboard.html" class="bn-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>Dashboard</a>
+  <a href="tagihan.html" class="bn-item active"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>Tagihan</a>
+  <a href="pembayaran.html" class="bn-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg>Pembayaran</a>
+  <a href="laporan.html" class="bn-item"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>Laporan</a>
+</nav>
 
-  overlay.querySelector("#_pSave").onclick = async () => {
-    const amount = Number(overlay.querySelector("#_pAmount").value);
-    const method = overlay.querySelector("#_pMethod").value;
-    const note   = overlay.querySelector("#_pNote").value;
-    if (!amount) { showToast("Masukkan jumlah.", "error"); return; }
-
-    const { error } = await supabase.from("payments").insert({
-      bill_id: billId, amount, method, note,
-      status: "diterima", created_by: session.user.id,
-    });
-    if (error) { showToast("Gagal simpan: " + error.message, "error"); return; }
-    await supabase.from("bills").update({ status: "lunas", amount_paid: amount }).eq("id", billId);
-    showToast("Pembayaran dicatat. Tagihan lunas! ✓", "success");
-    close(); loadBills(filterStatus?.value ?? "");
-  };
-}
-
-// ── Init ──────────────────────────────────────────────────
-injectFloatingBar();
-loadFormData();
-loadBills();
+<script type="module" src="js/tagihan.js"></script>
+<script>
+  const btnMenu = document.getElementById("btnMenu");
+  const sidebar = document.getElementById("sidebar");
+  const overlay = document.getElementById("sidebarOverlay");
+  function openSidebar()  { sidebar.classList.add("open"); overlay.classList.add("active"); document.body.style.overflow="hidden"; }
+  function closeSidebar() { sidebar.classList.remove("open"); overlay.classList.remove("active"); document.body.style.overflow=""; }
+  btnMenu.addEventListener("click", () => sidebar.classList.contains("open") ? closeSidebar() : openSidebar());
+  overlay.addEventListener("click", closeSidebar);
+  document.addEventListener("keydown", e => { if (e.key==="Escape") closeSidebar(); });
+</script>
+</body>
+</html>
