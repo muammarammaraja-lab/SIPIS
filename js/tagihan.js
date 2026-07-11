@@ -57,7 +57,10 @@ function buildMessage(template, bill) {
   const periode = bill.period ? ` (${bill.period})` : "";
   const rincian = `${jenis}${periode}`;
   const total   = formatRupiah(bill.amount);
-  const link    = `${window.location.origin}/invoice.html?id=${bill.id}`;
+  const token   = bill.invoice_token;
+  const link    = token
+    ? `${window.location.origin}/invoice.html?t=${token}`
+    : `${window.location.origin}/invoice.html?id=${bill.id}`;
 
   if (template) {
     return template
