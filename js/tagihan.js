@@ -113,13 +113,22 @@ function progressCell(bill) {
 }
 
 // ── Reminder badge ────────────────────────────────────────
-function reminderBadge(billId) {
+function reminderStatus(billId) {
   const log = notifLogsMap[billId];
-  if (!log) return `<span style="font-size:11px;color:var(--grey-400)">⚪ Belum</span>`;
-  const isToday = new Date(log.created_at).toDateString() === new Date().toDateString();
-  return isToday
-    ? `<span style="font-size:11px;color:#d97706">🟡 Hari ini</span>`
-    : `<span style="font-size:11px;color:#16a34a">🟢 Sudah</span>`;
+  if (!log) return "belum";
+  const sent = new Date(log.created_at);
+  const now  = new Date();
+  if (sent.toDateString() === now.toDateString()) return "hari_ini";
+  const diffDays = Math.floor((now - sent) / 86400000);
+  return diffDays >= 3 ? "kirim_ulang" : "sudah";
+}
+
+function reminderBadge(billId) {
+  const s = reminderStatus(billId);
+  if (s === "belum")       return `<span style="font-size:11px;color:var(--grey-400)">⚪ Belum</span>`;
+  if (s === "hari_ini")    return `<span style="font-size:11px;color:#d97706">🟡 Hari ini</span>`;
+  if (s === "kirim_ulang") return `<span style="font-size:11px;color:#16a34a">🟢 3+ hari lalu</span>`;
+  return `<span style="font-size:11px;color:#16a34a">🟢 Sudah</span>`;
 }
 
 // ── WA Helpers ────────────────────────────────────────────
@@ -273,13 +282,43 @@ async function loadBills(statusFilter = "") {
     const invoiceLink = b.invoice_token
       ? `invoice.html?t=${b.invoice_token}`
       : `invoice.html?id=${b.id}`;
+
+    // Kondisi 1: Lunas
     if (b.status === "lunas") {
       return `<a href="${invoiceLink}" target="_blank" class="btn btn-ghost btn-sm" style="font-size:12px">🧾 Invoice</a>`;
     }
-    return `<div style="display:flex;gap:4px;align-items:center">
-      ${b.students?.parent_whatsapp ? `<button class="btn btn-sm" data-wa="${b.id}" style="background:#25D366;color:#fff;border-color:#25D366;padding:4px 8px;font-size:12px">WA</button>` : ""}
+
+    // Kondisi 2: Menunggu verifikasi
+    if (b.status === "menunggu_verifikasi") {
+      return `<div style="display:flex;gap:4px;align-items:center">
+        <button class="btn btn-sm" data-verify="${b.id}" style="background:#3b82f6;color:#fff;border-color:#3b82f6;padding:4px 10px;font-size:12px">🔵 Verifikasi</button>
+        <a href="${invoiceLink}" target="_blank" class="btn btn-ghost btn-sm" style="font-size:12px">🧾</a>
+      </div>`;
+    }
+
+    // Kondisi 3: Belum lunas — WA kontekstual + Bayar + Invoice + Edit
+    const rs = reminderStatus(b.id);
+    let waBtn = "";
+    if (b.students?.parent_whatsapp) {
+      if (rs === "hari_ini") {
+        waBtn = `<button class="btn btn-sm" data-wa="${b.id}" title="Sudah diingatkan hari ini"
+          style="background:#fef08a;color:#854d0e;border-color:#e5d76b;padding:4px 8px;font-size:12px"
+          onclick="if(!confirm('Sudah diingatkan hari ini. Kirim lagi?')) return false">⏳ Terkirim</button>`;
+      } else if (rs === "kirim_ulang") {
+        waBtn = `<button class="btn btn-sm" data-wa="${b.id}"
+          style="background:#25D366;color:#fff;border-color:#25D366;padding:4px 8px;font-size:12px">🔄 Kirim Ulang</button>`;
+      } else {
+        waBtn = `<button class="btn btn-sm" data-wa="${b.id}"
+          style="background:#25D366;color:#fff;border-color:#25D366;padding:4px 8px;font-size:12px">💬 WA</button>`;
+      }
+    }
+
+    return `<div style="display:flex;gap:4px;align-items:center;flex-wrap:wrap">
+      ${waBtn}
+      <button class="btn btn-sm" data-pay="${b.id}"
+        style="background:#2563eb;color:#fff;border-color:#2563eb;padding:4px 8px;font-size:12px">💰 Bayar</button>
       <a href="${invoiceLink}" target="_blank" class="btn btn-ghost btn-sm" style="font-size:12px">🧾</a>
-      <button class="btn btn-ghost btn-sm" data-edit-bill="${b.id}" style="font-size:12px">Edit</button>
+      <button class="btn btn-ghost btn-sm" data-edit-bill="${b.id}" style="font-size:12px;padding:4px 6px">⋮</button>
     </div>`;
   };
 
@@ -346,6 +385,16 @@ async function loadBills(statusFilter = "") {
   );
   document.querySelectorAll("[data-wa]").forEach(btn =>
     btn.addEventListener("click", () => openWAPreview(btn.dataset.wa))
+  );
+
+  // Verifikasi instan dari tabel
+  document.querySelectorAll("[data-verify]").forEach(btn =>
+    btn.addEventListener("click", () => openVerifyModal(btn.dataset.verify))
+  );
+
+  // Catat bayar manual langsung dari tabel
+  document.querySelectorAll("[data-pay]").forEach(btn =>
+    btn.addEventListener("click", () => openPayModal(btn.dataset.pay))
   );
   document.querySelectorAll(".check-bill").forEach(cb =>
     cb.addEventListener("change", () => {
@@ -474,6 +523,132 @@ document.getElementById("generateForm")?.addEventListener("submit", async e => {
   showToast(`${students.length} tagihan berhasil dibuat.`, "success");
   closeGenModal(); loadBills();
 });
+
+// ── Verifikasi instan dari tabel ─────────────────────────
+async function openVerifyModal(billId) {
+  const { data: payments } = await supabase
+    .from("payments")
+    .select("id, amount, proof_url, created_at")
+    .eq("bill_id", billId)
+    .eq("status", "menunggu_verifikasi")
+    .order("created_at", { ascending: false })
+    .limit(1);
+
+  const p = payments?.[0];
+  if (!p) { showToast("Tidak ada pembayaran menunggu verifikasi.", "error"); return; }
+
+  const bill = currentBillsData.find(b => b.id === billId);
+  const overlay = document.createElement("div");
+  overlay.style.cssText = "position:fixed;inset:0;background:rgba(10,20,40,.55);display:flex;align-items:center;justify-content:center;z-index:200;padding:20px;backdrop-filter:blur(3px)";
+  overlay.innerHTML = `
+    <div class="modal-box" style="max-width:420px">
+      <div class="modal-header">
+        <h2>🔵 Verifikasi Pembayaran</h2>
+        <button class="modal-close" id="_vClose">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div style="padding:4px 0 12px">
+        <table style="width:100%;font-size:13px;border-collapse:collapse;margin-bottom:12px">
+          <tr><td style="color:var(--grey-500);padding:5px 0;width:110px">Siswa</td><td><strong>${bill?.students?.name ?? "-"}</strong></td></tr>
+          <tr><td style="color:var(--grey-500);padding:5px 0">Tagihan</td><td>${bill?.billing_types?.name ?? "-"} ${bill?.period ? `— ${bill.period}` : ""}</td></tr>
+          <tr><td style="color:var(--grey-500);padding:5px 0">Jumlah</td><td><strong>${formatRupiah(p.amount)}</strong></td></tr>
+        </table>
+        ${p.proof_url
+          ? `<div style="margin-bottom:10px">
+               <div style="font-size:12px;font-weight:500;color:var(--grey-600);margin-bottom:6px">Bukti Transfer:</div>
+               <a href="${p.proof_url}" target="_blank">
+                 <img src="${p.proof_url}" style="width:100%;border-radius:8px;max-height:220px;object-fit:cover" />
+               </a>
+             </div>`
+          : `<p style="font-size:12px;color:var(--grey-400);margin-bottom:10px"><em>Tidak ada bukti transfer</em></p>`}
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" id="_vTolak" style="color:var(--red)">✕ Tolak</button>
+        <button class="btn btn-primary" id="_vTerima" style="background:#22c55e;border-color:#22c55e">✓ Terima & Lunas</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+
+  const close = () => overlay.remove();
+  overlay.querySelector("#_vClose").onclick = close;
+  overlay.addEventListener("click", e => { if (e.target === overlay) close(); });
+
+  overlay.querySelector("#_vTolak").onclick = async () => {
+    const { error } = await supabase.from("payments").update({ status: "ditolak" }).eq("id", p.id);
+    if (error) { showToast("Gagal menolak: " + error.message, "error"); return; }
+    showToast("Pembayaran ditolak.", "success");
+    close(); loadBills(filterStatus?.value ?? "");
+  };
+
+  overlay.querySelector("#_vTerima").onclick = async () => {
+    const { error } = await supabase.from("payments").update({ status: "diterima" }).eq("id", p.id);
+    if (!error) await supabase.from("bills").update({ status: "lunas", amount_paid: p.amount }).eq("id", billId);
+    if (error) { showToast("Gagal verifikasi: " + error.message, "error"); return; }
+    showToast("Pembayaran diterima. Tagihan lunas! ✓", "success");
+    close(); loadBills(filterStatus?.value ?? "");
+  };
+}
+
+// ── Bayar langsung dari tabel ─────────────────────────────
+async function openPayModal(billId) {
+  const bill = currentBillsData.find(b => b.id === billId);
+  if (!bill) return;
+  const sisa = Number(bill.amount) - Number(bill.amount_paid ?? 0);
+
+  const overlay = document.createElement("div");
+  overlay.style.cssText = "position:fixed;inset:0;background:rgba(10,20,40,.55);display:flex;align-items:center;justify-content:center;z-index:200;padding:20px;backdrop-filter:blur(3px)";
+  overlay.innerHTML = `
+    <div class="modal-box" style="max-width:380px">
+      <div class="modal-header">
+        <h2>💰 Catat Pembayaran</h2>
+        <button class="modal-close" id="_pClose">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div style="padding:4px 0 12px">
+        <p style="font-size:13px;color:var(--grey-600);margin-bottom:12px">
+          <strong>${bill.students?.name ?? "-"}</strong> — ${bill.billing_types?.name ?? "-"} ${bill.period ? `(${bill.period})` : ""}
+        </p>
+        <label>Jumlah Dibayar (Rp)</label>
+        <input type="number" id="_pAmount" value="${sisa}" style="width:100%;margin-bottom:8px" />
+        <label>Metode</label>
+        <select id="_pMethod" style="width:100%;margin-bottom:8px">
+          <option value="tunai">Tunai</option>
+          <option value="transfer">Transfer</option>
+          <option value="qris">QRIS</option>
+        </select>
+        <label>Catatan (opsional)</label>
+        <input type="text" id="_pNote" placeholder="cth: Titip wali kelas" style="width:100%" />
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-ghost" id="_pCancel">Batal</button>
+        <button class="btn btn-primary" id="_pSave" style="background:#2563eb;border-color:#2563eb">Simpan & Lunas</button>
+      </div>
+    </div>`;
+  document.body.appendChild(overlay);
+
+  const close = () => overlay.remove();
+  overlay.querySelector("#_pClose").onclick = close;
+  overlay.querySelector("#_pCancel").onclick = close;
+  overlay.addEventListener("click", e => { if (e.target === overlay) close(); });
+
+  overlay.querySelector("#_pSave").onclick = async () => {
+    const amount = Number(overlay.querySelector("#_pAmount").value);
+    const method = overlay.querySelector("#_pMethod").value;
+    const note   = overlay.querySelector("#_pNote").value;
+    if (!amount) { showToast("Masukkan jumlah.", "error"); return; }
+
+    const { error } = await supabase.from("payments").insert({
+      bill_id: billId, amount, method, note,
+      status: "diterima", created_by: session.user.id,
+    });
+    if (error) { showToast("Gagal simpan: " + error.message, "error"); return; }
+    await supabase.from("bills").update({ status: "lunas", amount_paid: amount }).eq("id", billId);
+    showToast("Pembayaran dicatat. Tagihan lunas! ✓", "success");
+    close(); loadBills(filterStatus?.value ?? "");
+  };
+}
 
 // ── Init ──────────────────────────────────────────────────
 injectFloatingBar();
